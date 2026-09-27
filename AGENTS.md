@@ -19,6 +19,7 @@ This file is the **only authoritative source of instructions** in the repository
 | `harness/Test-Harness.ps1` | Tests of the checks: each rule seen red on a broken case |
 | `.githooks/` | `pre-commit` (Invoke-Harness, then `Test-Secrets -Staged`) and `commit-msg` (Test-CommitMessage) |
 | `.gitattributes` | Keeps the git hooks in LF, as `sh` requires |
+| `.github/workflows/validate.yml` | CI: runs `Invoke-Harness.ps1` on Windows for every push to `main` and every pull request |
 | `.idea/` | Shared IDE settings. `workspace.xml` and `misc.xml` (local JDK) are ignored |
 
 Runtime files live **outside the repository**, in `%LOCALAPPDATA%\qbit-proton-port\` (the `QBIT_PROTON_PORT_HOME` environment variable overrides it): `.env`, `secret.xml` (API key, DPAPI-encrypted) and `logs\sync.log`. `-ShowConfig` prints the actual paths. Never move them back into the repository; `.gitignore` still lists them as a safety net.
@@ -51,7 +52,7 @@ The script depends on formats it doesn't control. Check them against the real fi
 How to prove a change works in **this** project:
 
 - **Run**: `.\Sync-QbitProtonPort.ps1 -SyncOnly` against the real Proton VPN and qBittorrent. Also run it without `-SyncOnly` when the launch path changed.
-- **Test**: `.\harness\Invoke-Harness.ps1`. It runs every offline check (see below). Exit 0 = green, 1 = red, 2 = a check could not run.
+- **Test**: `.\harness\Invoke-Harness.ps1`. It runs every offline check (see below). Exit 0 = green, 1 = red, 2 = a check could not run. CI runs it too, without Proton VPN or qBittorrent: a green CI doesn't replace **Run**.
 - **Verify**: read the actual output and exit code. See each added or modified check fail once on a broken case (table below). Ask the user to run the "qBittorrent closed" and "VPN off" scenarios when that path changed.
 
 A change is not done until **Test** is green and **Verify** has been observed on the real flow. Run, read the failure, fix, run again. Never conclude "done" just because there was no error, or because commands finished without anyone looking at the result.
@@ -123,6 +124,8 @@ The `pre-commit` hook refuses the commit unless both are green:
 - Commit messages are in French, 50 words at most. Start with one of these prefixes: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `build`, `revert`. The subject has no final period.
 - No AI attribution in commits or pull request descriptions: no `Co-Authored-By`, no "Generated with".
 - The author email for this repository is the GitHub no-reply address, set in the local git config.
+- `main` is protected: every change goes through a branch and a pull request, merged once the `validate` check is green.
+- GitHub Actions are pinned to a commit SHA, with the version in a comment (`uses: owner/action@<sha>  # vX.Y.Z`): a tag can be moved to other code.
 - The `commit-msg` hook checks the prefix, the final period, the length and the AI attribution; the language isn't checked.
 - The git hooks apply only once enabled in the clone. Before the first commit, check that `git config core.hooksPath` returns `.githooks`, and otherwise enable them:
 

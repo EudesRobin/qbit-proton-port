@@ -144,6 +144,8 @@ Errors (exit code 1, qBittorrent is not started):
 | `Proton VPN log reports an invalid port` | Reconnect Proton VPN. If it persists, the log format may have changed |
 | `Created ... from the template` | The `.env` file was missing and has been created: edit it as in step 4, then continue with step 5 |
 | `Setting ... is missing or empty` | Fill in that setting in `.env` (step 4 or 5) |
+| `QBIT_API_PORT must be a port number` | Set it in `.env` to the WebUI port of step 3, digits only |
+| `QBIT_CERT_SHA256 must be a SHA-256 fingerprint` | Run `-NewCertificate` again (step 5) rather than editing the value by hand |
 | `WebUI API unreachable` + `WebUI is disabled` | Enable the Web UI in qBittorrent (step 3) |
 | `WebUI API unreachable` + `WebUI port is ... but QBIT_API_PORT is ...` | Make `QBIT_API_PORT` in `.env` equal the WebUI port (step 3) |
 | `WebUI API unreachable` + `nothing listens on 127.0.0.1` | qBittorrent is still starting, or its WebUI IP address is not `127.0.0.1` (step 3) |

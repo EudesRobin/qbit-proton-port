@@ -1,0 +1,15 @@
+# Proposes updates of the pinned GitHub Actions (AGENTS.md, Git): the SHA and its version comment.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    # A release younger than 30 days is not proposed: time for a compromised one to be spotted.
+    cooldown:
+      default-days: 30
+    commit-message:
+      prefix: build
+    groups:
+      actions:
+        patterns: ['*']

@@ -20,6 +20,7 @@ This file is the **only authoritative source of instructions** in the repository
 | `.githooks/` | `pre-commit` (Invoke-Harness, then `Test-Secrets -Staged`) and `commit-msg` (Test-CommitMessage) |
 | `.gitattributes` | Keeps the git hooks in LF, as `sh` requires |
 | `.github/workflows/validate.yml` | CI: runs `Invoke-Harness.ps1` on Windows for every push to `main` and every pull request |
+| `.github/dependabot.yml` | Weekly pull request updating the pinned GitHub Actions, for releases at least 30 days old |
 | `.idea/` | Shared IDE settings. `workspace.xml` and `misc.xml` (local JDK) are ignored |
 
 Runtime files live **outside the repository**, in `%LOCALAPPDATA%\qbit-proton-port\` (the `QBIT_PROTON_PORT_HOME` environment variable overrides it): `.env`, `secret.xml` (API key, DPAPI-encrypted) and `logs\sync.log`. `-ShowConfig` prints the actual paths. Never move them back into the repository; `.gitignore` still lists them as a safety net.
@@ -125,7 +126,8 @@ The `pre-commit` hook refuses the commit unless both are green:
 - No AI attribution in commits or pull request descriptions: no `Co-Authored-By`, no "Generated with".
 - The author email for this repository is the GitHub no-reply address, set in the local git config.
 - `main` is protected: every change goes through a branch and a pull request, merged once the `validate` check is green.
-- GitHub Actions are pinned to a commit SHA, with the version in a comment (`uses: owner/action@<sha>  # vX.Y.Z`): a tag can be moved to other code.
+- GitHub Actions are pinned to a commit SHA, with the version in a comment (`uses: owner/action@<sha>  # vX.Y.Z`): a tag can be moved to other code. Dependabot updates the SHA and the comment together.
+- Dependabot's commit messages are in English and carry the release notes: squash-merge its pull requests, with a message that follows the rules above.
 - The `commit-msg` hook checks the prefix, the final period, the length and the AI attribution; the language isn't checked.
 - The git hooks apply only once enabled in the clone. Before the first commit, check that `git config core.hooksPath` returns `.githooks`, and otherwise enable them:
 

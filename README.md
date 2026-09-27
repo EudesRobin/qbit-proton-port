@@ -1,6 +1,7 @@
 # qbit-proton-port
 
 [![validate](https://github.com/EudesRobin/qbit-proton-port/actions/workflows/validate.yml/badge.svg?branch=main)](https://github.com/EudesRobin/qbit-proton-port/actions/workflows/validate.yml)
+[![Dependabot Updates](https://github.com/EudesRobin/qbit-proton-port/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/EudesRobin/qbit-proton-port/actions/workflows/dependabot/dependabot-updates)
 
 Keeps qBittorrent's listening port equal to the port forwarded by Proton VPN on Windows.
 

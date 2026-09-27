@@ -14,7 +14,11 @@ This file is the **only authoritative source of instructions** in the repository
 | `LICENSE` | MIT |
 | `harness/Invoke-Harness.ps1` | Runs every offline check: the **Test** step of the Definition of Done (see Harness) |
 | `harness/Test-Consistency.ps1` | Script, `.env.example` and Markdown files agree |
-| `harness/Test-Harness.ps1` | Tests of the checks: each rule seen red on a broken copy of the repository |
+| `harness/Test-Secrets.ps1` | No runtime file, key, fingerprint, user path, IP or local `.env` value in what would be published; `-Staged` for the staged diff |
+| `harness/Test-CommitMessage.ps1` | Commit message rules (see Git) |
+| `harness/Test-Harness.ps1` | Tests of the checks: each rule seen red on a broken case |
+| `.githooks/` | `pre-commit` (Invoke-Harness, then `Test-Secrets -Staged`) and `commit-msg` (Test-CommitMessage) |
+| `.gitattributes` | Keeps the git hooks in LF, as `sh` requires |
 | `.idea/` | Shared IDE settings. `workspace.xml` and `misc.xml` (local JDK) are ignored |
 
 Runtime files live **outside the repository**, in `%LOCALAPPDATA%\qbit-proton-port\` (the `QBIT_PROTON_PORT_HOME` environment variable overrides it): `.env`, `secret.xml` (API key, DPAPI-encrypted) and `logs\sync.log`. `-ShowConfig` prints the actual paths. Never move them back into the repository; `.gitignore` still lists them as a safety net.
@@ -107,12 +111,21 @@ The API key must not appear in the log (path given by `-ShowConfig`).
 
 ### Before any commit
 
-- `.\harness\Invoke-Harness.ps1` is green.
-- `git status --short --ignored` shows no `.env`, `secret.xml` or `logs/` in the working tree.
-- The staged diff has no key, private path, personal IP or real WebUI port.
+The `pre-commit` hook refuses the commit unless both are green:
+
+- `.\harness\Invoke-Harness.ps1`;
+- `.\harness\Test-Secrets.ps1 -Staged`: no `.env`, `secret.xml`, `logs/`, `qBittorrent.ini` or certificate file staged, and no private key, fingerprint, user folder path, IP address other than loopback, or value of your local `.env` in the added lines.
+
+`Test-Secrets.ps1` can't recognise the API key itself, which it never decrypts: still read the staged diff before committing.
 
 ## Git
 
 - Commit messages are in French, 50 words at most. Start with one of these prefixes: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `build`, `revert`. The subject has no final period.
 - No AI attribution in commits or pull request descriptions: no `Co-Authored-By`, no "Generated with".
 - The author email for this repository is the GitHub no-reply address, set in the local git config.
+- The `commit-msg` hook checks the prefix, the final period, the length and the AI attribution; the language isn't checked.
+- The git hooks apply only once enabled in the clone. Before the first commit, check that `git config core.hooksPath` returns `.githooks`, and otherwise enable them:
+
+  ```powershell
+  git config core.hooksPath .githooks
+  ```

@@ -1,0 +1,18 @@
+#!/bin/sh
+# Refuses the commit while a harness check is red (AGENTS.md, Before any commit).
+# Exit 2 of a check means it could not run: reported, the commit goes through.
+# Enable once per clone: git config core.hooksPath .githooks
+if ! command -v pwsh >/dev/null 2>&1; then
+    echo "pre-commit: pwsh not found, checks skipped" >&2
+    exit 0
+fi
+worst=0
+for check in "harness/Invoke-Harness.ps1" "harness/Test-Secrets.ps1 -Staged"; do
+    pwsh -NoProfile -File $check
+    code=$?
+    if [ "$code" -eq 1 ] || { [ "$code" -ne 0 ] && [ "$code" -ne 2 ]; }; then worst=1
+    elif [ "$code" -eq 2 ] && [ "$worst" -eq 0 ]; then
+        echo "pre-commit: $check could not run, commit let through" >&2
+    fi
+done
+exit "$worst"

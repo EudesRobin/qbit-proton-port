@@ -10,9 +10,10 @@
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-# Script and arguments, in order: consistency first, then the tests of the checks themselves.
+# Script and arguments, in order: the checks, then the tests of the checks themselves.
 $Checks = @(
     ,@('Test-Consistency.ps1')
+    ,@('Test-Secrets.ps1')
     ,@('Test-Harness.ps1')
 )
 

@@ -1,7 +1,7 @@
 #Requires -Version 7.3
 <#
 .SYNOPSIS
-    Checks that the documentation still matches Sync-QbitProtonPort.ps1. Exit 0 = green, 1 = red.
+    Checks that Sync-QbitProtonPort.ps1, its settings template and the Markdown files agree. Exit 0 = green, 1 = red.
 
 .DESCRIPTION
     Rules:
@@ -11,7 +11,10 @@
       4. No omission: every error (throw), warning (Write-Log WARN) and WebUI diagnostic of the script
          is matched by a row of the README troubleshooting tables.
       5. No stale entry: every message fragment quoted in the troubleshooting tables exists in the script.
-      6. Every relative link in the Markdown files resolves.
+      6. Every relative link in the Markdown files resolves, inline or reference-style.
+      7. Every anchor (#heading) of a link to a Markdown file matches a heading of that file.
+      8. Every setting the script reads (Get-Setting) is in .env.example.
+      9. Every Markdown table has at least one data row.
 
     Troubleshooting rows quote the static part of a message in backticks; "..." stands for a variable part.
     A message is matched when one of its static parts (10+ characters) and a quoted fragment contain each other.
@@ -26,6 +29,7 @@ Set-StrictMode -Version Latest
 
 $ScriptPath = Join-Path $Root 'Sync-QbitProtonPort.ps1'
 $ReadmePath = Join-Path $Root 'README.md'
+$EnvExample = Join-Path $Root '.env.example'
 $Failures   = [Collections.Generic.List[string]]::new()
 function Fail([string] $Rule, [string] $Message) { $Failures.Add("[$Rule] $Message") }
 
@@ -36,6 +40,9 @@ $TrimChars = [char[]]" `t.,:;()'`"!?"
 
 $readme = Get-Content $ReadmePath -Raw -Encoding utf8
 $scriptText = Get-Content $ScriptPath -Raw -Encoding utf8
+$templateNames = foreach ($line in Get-Content $EnvExample -Encoding utf8) {
+    if ($line -match '^\s*([A-Z0-9_]+)\s*=') { $Matches[1] }
+}
 
 # --- 1. Parse --------------------------------------------------------------------
 $tokens = $null; $parseErrors = $null
@@ -49,16 +56,40 @@ foreach ($p in $ast.ParamBlock.Parameters) {
 }
 
 # --- 3. Settings and environment variables ------------------------------------------
-foreach ($line in Get-Content (Join-Path $Root '.env.example') -Encoding utf8) {
-    if ($line -match '^\s*([A-Z0-9_]+)\s*=' -and $readme -notmatch "``$($Matches[1])``") {
-        Fail 'settings' "setting $($Matches[1]) (.env.example) is not documented in README.md"
-    }
+foreach ($name in $templateNames) {
+    if ($readme -notmatch "``$name``") { Fail 'settings' "setting $name (.env.example) is not documented in README.md" }
 }
 $envVars = $ast.FindAll({ param($n) $n -is [Management.Automation.Language.VariableExpressionAst] -and
         $n.VariablePath.DriveName -eq 'env' }, $true) |
     ForEach-Object { $_.VariablePath.UserPath -replace '^env:', '' } | Sort-Object -Unique
 foreach ($v in $envVars | Where-Object { $_ -notin $SystemEnv }) {
     if ($readme -notmatch "``$v``") { Fail 'settings' "environment variable $v is not documented in README.md" }
+}
+
+# --- Arguments of a command call, by parameter name then by position ----------------------
+function Get-CommandArguments([Management.Automation.Language.CommandAst] $Command, [string[]] $Positional) {
+    $bound = @{}; $position = 0
+    $elements = $Command.CommandElements
+    for ($i = 1; $i -lt $elements.Count; $i++) {
+        $e = $elements[$i]
+        if ($e -is [Management.Automation.Language.CommandParameterAst]) {
+            if ($e.Argument) { $bound[$e.ParameterName] = $e.Argument }
+            elseif ($i + 1 -lt $elements.Count) { $bound[$e.ParameterName] = $elements[++$i] }
+        } elseif ($position -lt $Positional.Count) {
+            while ($position -lt $Positional.Count -and $bound.ContainsKey($Positional[$position])) { $position++ }
+            if ($position -lt $Positional.Count) { $bound[$Positional[$position++]] = $e }
+        }
+    }
+    return $bound
+}
+
+# --- 8. Settings read by the script are in the template -----------------------------------
+foreach ($c in $ast.FindAll({ param($n) $n -is [Management.Automation.Language.CommandAst] -and
+        $n.GetCommandName() -eq 'Get-Setting' }, $true)) {
+    $name = (Get-CommandArguments $c 'Settings', 'Name')['Name']
+    if ($name -is [Management.Automation.Language.StringConstantExpressionAst] -and $name.Value -notin $templateNames) {
+        Fail 'template' "line $($c.Extent.StartLineNumber): setting $($name.Value) is read by the script but missing from .env.example"
+    }
 }
 
 # --- Messages of the script ----------------------------------------------------------
@@ -88,9 +119,11 @@ foreach ($t in $ast.FindAll({ param($n) $n -is [Management.Automation.Language.T
     $messages.Add([pscustomobject]@{ Line = $t.Extent.StartLineNumber; Parts = @(Get-StaticParts $t.Pipeline) })
 }
 foreach ($c in $ast.FindAll({ param($n) $n -is [Management.Automation.Language.CommandAst] -and
-        $n.GetCommandName() -eq 'Write-Log' -and $n.CommandElements.Count -ge 3 -and
-        $n.CommandElements[1].Extent.Text -eq 'WARN' }, $true)) {
-    $messages.Add([pscustomobject]@{ Line = $c.Extent.StartLineNumber; Parts = @(Get-StaticParts $c.CommandElements[2]) })
+        $n.GetCommandName() -eq 'Write-Log' }, $true)) {
+    $arguments = Get-CommandArguments $c 'Level', 'Message'
+    if ($arguments['Level'] -and $arguments['Level'].Extent.Text.Trim("'`"") -eq 'WARN' -and $arguments['Message']) {
+        $messages.Add([pscustomobject]@{ Line = $c.Extent.StartLineNumber; Parts = @(Get-StaticParts $arguments['Message']) })
+    }
 }
 $diag = $ast.Find({ param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'Get-WebUiDiagnostic' }, $true)
 if ($diag) {
@@ -125,14 +158,54 @@ foreach ($f in $fragments | Sort-Object -Unique) {
     if (-not $scriptText.Contains($f)) { Fail 'stale' "README Troubleshooting quotes '$f', which the script no longer contains" }
 }
 
-# --- 6. Relative links -----------------------------------------------------------------------
-foreach ($md in Get-ChildItem $Root -Recurse -Filter *.md -File | Where-Object FullName -notmatch '\\\.git\\') {
+# --- Markdown files: lines outside fenced code blocks ----------------------------------------
+function Get-ProseLines([string] $Text) {
+    $inFence = $false
+    foreach ($line in $Text -split "`r?`n") {
+        if ($line -match '^\s*(```|~~~)') { $inFence = -not $inFence; continue }
+        if (-not $inFence) { $line }
+    }
+}
+
+# GitHub heading anchors: lower case, punctuation dropped, spaces to hyphens, -1, -2... for duplicates.
+function Get-Anchors([string] $Path) {
+    $seen = @{}
+    foreach ($line in Get-ProseLines (Get-Content $Path -Raw -Encoding utf8)) {
+        if ($line -notmatch '^#{1,6}\s+(.+?)\s*#*\s*$') { continue }
+        $slug = ($Matches[1].ToLowerInvariant() -replace '[^\p{L}\p{Nd}\s_-]', '') -replace '\s', '-'
+        if ($seen.ContainsKey($slug)) { $seen[$slug]++; "$slug-$($seen[$slug])" } else { $seen[$slug] = 0; $slug }
+    }
+}
+
+$mdFiles = Get-ChildItem $Root -Recurse -Filter *.md -File | Where-Object FullName -notmatch '\\\.git\\'
+$anchorCache = @{}
+foreach ($md in $mdFiles) {
     $text = Get-Content $md.FullName -Raw -Encoding utf8
-    foreach ($m in [regex]::Matches($text, '\]\(([^)\s#]+)(#[^)]*)?\)')) {
+    $prose = @(Get-ProseLines $text)
+
+    # --- 6. Relative links and 7. anchors ------------------------------------------------------
+    $links = @([regex]::Matches($text, '\]\(([^)\s#]*)(#[^)\s]*)?\)')) +
+             @([regex]::Matches($text, '(?m)^ {0,3}\[[^\]]+\]:\s*<?([^>\s#]*)(#[^>\s]*)?>?'))
+    foreach ($m in $links) {
         $target = $m.Groups[1].Value
+        $anchor = $m.Groups[2].Value.TrimStart('#')
         if ($target -match '^[a-z]+:') { continue }   # http:, https:, mailto:
-        if (-not (Test-Path (Join-Path $md.DirectoryName $target))) {
-            Fail 'links' "$($md.Name): link '$target' doesn't resolve"
+        $path = if ($target) { Join-Path $md.DirectoryName $target } else { $md.FullName }
+        if (-not (Test-Path $path)) { Fail 'links' "$($md.Name): link '$target' doesn't resolve"; continue }
+        if (-not $anchor -or $path -notmatch '\.md$') { continue }
+        $full = (Resolve-Path $path).Path
+        if (-not $anchorCache.ContainsKey($full)) { $anchorCache[$full] = @(Get-Anchors $full) }
+        if ($anchor -notin $anchorCache[$full]) {
+            Fail 'anchors' "$($md.Name): anchor '#$anchor' matches no heading of $(Split-Path $full -Leaf)"
+        }
+    }
+
+    # --- 9. Tables have rows ---------------------------------------------------------------------
+    for ($i = 0; $i -lt $prose.Count; $i++) {
+        # A separator row has at least one pipe; a bare --- is a horizontal rule.
+        if ($prose[$i] -notmatch '\|' -or $prose[$i] -notmatch '^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$') { continue }
+        if ($i + 1 -ge $prose.Count -or $prose[$i + 1] -notmatch '^\s*\|') {
+            Fail 'tables' "$($md.Name): table header '$($prose[$i - 1].Trim())' has no row"
         }
     }
 }
@@ -143,6 +216,6 @@ if ($Failures.Count) {
     Write-Host "RED: $($Failures.Count) problem(s)." -ForegroundColor Red
     exit 1
 }
-Write-Host ("GREEN: {0} parameters, {1} messages, {2} troubleshooting fragments checked." -f
-    $ast.ParamBlock.Parameters.Count, $messages.Count, @($fragments).Count) -ForegroundColor Green
+Write-Host ("GREEN: {0} parameters, {1} messages, {2} troubleshooting fragments, {3} Markdown files checked." -f
+    $ast.ParamBlock.Parameters.Count, $messages.Count, @($fragments).Count, @($mdFiles).Count) -ForegroundColor Green
 exit 0

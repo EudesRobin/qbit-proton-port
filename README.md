@@ -133,8 +133,6 @@ Each run is logged to `%LOCALAPPDATA%\qbit-proton-port\logs\sync.log`. Past 1 MB
 
 ## Troubleshooting
 
-| Message | Fix |
-|---|---|
 Messages are quoted by their fixed part; `...` stands for a variable part such as a path or a number.
 
 Errors (exit code 1, qBittorrent is not started):
@@ -193,7 +191,7 @@ Warnings (the run continues):
 
 ## Contributing
 
-Before committing a change, run `.\harness\Test-Docs.ps1`. It checks that the script parses and that this README still matches it: parameters, settings, error messages and links. See [AGENTS.md](AGENTS.md) for the full Definition of Done.
+Before committing a change, run `.\harness\Invoke-Harness.ps1`. It checks that the script parses and that this README still matches it: parameters, settings, error messages, links and tables. It also tests these checks against deliberately broken copies of the repository. See [AGENTS.md](AGENTS.md) for the full Definition of Done.
 
 ## License
 

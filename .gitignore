@@ -1,0 +1,10 @@
+# Local settings and secrets
+.env
+secret.xml
+logs/
+
+# Never commit certificates or keys
+*.crt
+*.key
+*.pem
+*.pfx

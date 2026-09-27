@@ -453,8 +453,15 @@ try {
     }
 
     $settings  = Read-EnvFile
-    $apiPort   = [int](Get-Setting $settings 'QBIT_API_PORT')
+    $apiPort   = Get-Setting $settings 'QBIT_API_PORT'
     $pin       = Get-Setting $settings 'QBIT_CERT_SHA256'
+    if ($apiPort -notmatch '^\d{1,5}$' -or [int]$apiPort -lt 1 -or [int]$apiPort -gt 65535) {
+        throw "QBIT_API_PORT must be a port number between 1 and 65535, not '$apiPort'."
+    }
+    # Checked here, or a typo would only surface later as a misleading certificate mismatch.
+    if (($pin -replace ':', '') -notmatch '^[0-9A-Fa-f]{64}$') {
+        throw 'QBIT_CERT_SHA256 must be a SHA-256 fingerprint of 64 hexadecimal characters.'
+    }
     $qbitPath  = Get-Setting $settings 'QBIT_PATH'
     $interface = Get-Setting $settings 'VPN_INTERFACE'
 

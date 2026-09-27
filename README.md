@@ -12,10 +12,14 @@ It also binds qBittorrent to the VPN network interface, so torrent traffic stops
 
 ## Requirements
 
-- Windows 10 or 11
+- Windows 11
 - [PowerShell 7.3+](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-windows) (`pwsh`). Windows PowerShell 5.1 is not enough.
 - Proton VPN for Windows, on a plan that includes port forwarding
 - qBittorrent 5.2 or later (for API keys)
+
+Nothing else needs to be installed: the script only uses tools that ship with Windows (`icacls`, `conhost.exe`, and the `NetAdapter`, `ScheduledTasks` and `PKI` modules). Git is optional: you can download a ZIP instead.
+
+Tested on Windows 11 Pro 25H2 (build 26200) with PowerShell 7.6.6, Proton VPN 5.1.8 and qBittorrent 5.2.3.
 
 ## Setup (about 5 minutes, once)
 

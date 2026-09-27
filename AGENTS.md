@@ -12,7 +12,9 @@ This file is the **only authoritative source of instructions** in the repository
 | `.env.example` | Settings template, copied to `%LOCALAPPDATA%\qbit-proton-port\.env` |
 | `README.md` | User documentation. Its tables must match the script's parameters and error messages |
 | `LICENSE` | MIT |
-| `harness/Test-Docs.ps1` | Documentation check, part of the Definition of Done (see Harness) |
+| `harness/Invoke-Harness.ps1` | Runs every offline check: the **Test** step of the Definition of Done (see Harness) |
+| `harness/Test-Consistency.ps1` | Script, `.env.example` and Markdown files agree |
+| `harness/Test-Harness.ps1` | Tests of the checks: each rule seen red on a broken copy of the repository |
 | `.idea/` | Shared IDE settings. `workspace.xml` and `misc.xml` (local JDK) are ignored |
 
 Runtime files live **outside the repository**, in `%LOCALAPPDATA%\qbit-proton-port\` (the `QBIT_PROTON_PORT_HOME` environment variable overrides it): `.env`, `secret.xml` (API key, DPAPI-encrypted) and `logs\sync.log`. `-ShowConfig` prints the actual paths. Never move them back into the repository; `.gitignore` still lists them as a safety net.
@@ -43,7 +45,7 @@ The script depends on formats it doesn't control. Check them against the real fi
 How to prove a change works in **this** project:
 
 - **Run**: `.\Sync-QbitProtonPort.ps1 -SyncOnly` against the real Proton VPN and qBittorrent. Also run it without `-SyncOnly` when the launch path changed.
-- **Test**: `.\harness\Test-Docs.ps1`. It checks that the script parses and that the documentation matches the script (see below).
+- **Test**: `.\harness\Invoke-Harness.ps1`. It runs every offline check (see below). Exit 0 = green, 1 = red, 2 = a check could not run.
 - **Verify**: read the actual output and exit code. See each added or modified check fail once on a broken case (table below). Ask the user to run the "qBittorrent closed" and "VPN off" scenarios when that path changed.
 
 A change is not done until **Test** is green and **Verify** has been observed on the real flow. Run, read the failure, fix, run again. Never conclude "done" just because there was no error, or because commands finished without anyone looking at the result.
@@ -52,28 +54,33 @@ A change is not done until **Test** is green and **Verify** has been observed on
 
 After **each** edit of a `.ps1` file, before building anything on top of it, proposing a commit, or saying it's done:
 
-1. Run `.\harness\Test-Docs.ps1`.
+1. Run `.\harness\Invoke-Harness.ps1`.
 2. Run the script for real (**Run** above), and read the output and exit code.
 3. Red → read the cause, fix, and start again at 1.
 
 **At most 3 attempts.** If the loop is still red after the third fix, stop editing. Reply with a concise report giving, for each attempt, the change made and the resulting error. Then ask the user what to do next. Never weaken or skip a check to turn it green.
 
-### What `harness/Test-Docs.ps1` checks
+### What the checks cover
+
+`harness/Test-Consistency.ps1`:
 
 1. The script parses without errors.
 2. Every script parameter appears in the README.
 3. Every setting in `.env.example`, and every environment variable the script reads (except Windows ones), appears in the README.
-4. **No omission**: every error (`throw`), warning (`Write-Log WARN`) and WebUI diagnostic has a row in the README troubleshooting tables.
+4. **No omission**: every error (`throw`), warning (`Write-Log WARN`, positional or named arguments) and WebUI diagnostic has a row in the README troubleshooting tables.
 5. **No stale entry**: every message fragment quoted in those tables still exists in the script.
-6. Every relative link in the Markdown files resolves.
+6. Every relative link in the Markdown files resolves, inline or reference-style.
+7. Every anchor (`#heading`) of a link to a Markdown file matches a heading of that file.
+8. Every setting the script reads with `Get-Setting` is in `.env.example`.
+9. Every Markdown table has at least one data row.
 
 A troubleshooting row quotes the fixed part of a message in backticks, with `...` for a variable part. A message whose fixed part is too short (under 10 characters) can't be matched: reword it so it starts with a meaningful fixed phrase.
 
-When adding a rule to `Test-Docs.ps1`, see it fail once: run it with `-Root` pointing to a temporary copy of the repository with the rule deliberately broken.
+`harness/Test-Harness.ps1` runs each check against a temporary copy of the repository broken on purpose, and expects it red with a given message; it also expects the real repository green. A rule added to a check isn't done until its broken case is in `Test-Harness.ps1` and was seen failing against the check without the rule.
 
 ### Documentation stays true
 
-Any change to behaviour, a parameter, a setting, a message or a file location updates the README **in the same commit**: usage, settings, troubleshooting, how it works, security. `Test-Docs.ps1` covers only the mechanical part. Reread the README sections the diff touches, fix any statement that became wrong, and document any new behaviour that is missing. The same applies to `AGENTS.md` (layout, external contracts, security rules).
+Any change to behaviour, a parameter, a setting, a message or a file location updates the README **in the same commit**: usage, settings, troubleshooting, how it works, security. `Test-Consistency.ps1` covers only the mechanical part. Reread the README sections the diff touches, fix any statement that became wrong, and document any new behaviour that is missing. The same applies to `AGENTS.md` (layout, external contracts, security rules).
 
 Documentation is in English. It describes the result, not the process.
 
@@ -98,7 +105,7 @@ The API key must not appear in the log (path given by `-ShowConfig`).
 
 ### Before any commit
 
-- `.\harness\Test-Docs.ps1` is green.
+- `.\harness\Invoke-Harness.ps1` is green.
 - `git status --short --ignored` shows no `.env`, `secret.xml` or `logs/` in the working tree.
 - The staged diff has no key, private path, personal IP or real WebUI port.
 

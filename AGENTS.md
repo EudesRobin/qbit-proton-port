@@ -134,3 +134,30 @@ The `pre-commit` hook refuses the commit unless both are green:
   ```powershell
   git config core.hooksPath .githooks
   ```
+
+## Releases
+
+A release is an annotated git tag on a commit of `main`. The version number lives in the tag only, in no file.
+
+The tag follows semantic versioning, `MAJOR.MINOR.PATCH`, without a prefix: `1.0.0`, never `v1.0.0`. Choose the number to increment from all the changes since the previous release, as seen by a user who already runs the script:
+
+| Number | Incremented when |
+|---|---|
+| `MAJOR` | An existing setup needs the user to act: a parameter or setting is removed or renamed, a runtime file moves, or the scheduled task must be registered again. |
+| `MINOR` | A parameter, setting or behaviour is added, and an existing setup keeps working unchanged. |
+| `PATCH` | Anything else: a fix, documentation, the harness, CI. |
+
+Incrementing a number resets the ones after it: `1.4.2` becomes `1.5.0` or `2.0.0`.
+
+Tag only **after the pull request that closes the release is merged**, never on a working branch: the tag points to the state of `main` that users download. First check that the latest `validate` run on `main` is green, in the Actions tab of the GitHub repository.
+
+```powershell
+git switch main
+git pull --ff-only
+git tag -a <version> -m "<version>"
+git push origin <version>
+```
+
+- **Annotated tag** (`-a`): it records the author and the release date, which a lightweight tag doesn't.
+- **Ask before publishing.** `git push` makes the tag public: get the user's approval before running it.
+- **Never move or delete a published tag**: a clone that already fetched it would keep the old target. Fix a mistake with a new release.

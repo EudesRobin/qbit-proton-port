@@ -45,7 +45,7 @@ The script changes the port through qBittorrent's Web API, the only way to chang
 | Web User Interface (Remote control) | checked |
 | IP address | `127.0.0.1`, so it can't be reached from your network |
 | Port | a port of your choice, **not** the default 8080 (e.g. `27183`) |
-| Password | change it from the default |
+| Password | a strong password (the script doesn't use it, it uses the API key) |
 | Bypass authentication for clients on localhost | **unchecked** |
 | API key | click to generate one, and keep it for step 6 |
 
@@ -63,7 +63,16 @@ Copy-Item .env.example "$data\.env"
 notepad "$data\.env"
 ```
 
-Set `QBIT_API_PORT` to the port chosen in step 3. The other defaults usually fit.
+Set `QBIT_API_PORT` to the port chosen in step 3. The other defaults usually fit:
+
+| Setting | Meaning | Default |
+|---|---|---|
+| `QBIT_API_PORT` | qBittorrent WebUI port (step 3) | *(empty, required)* |
+| `QBIT_CERT_SHA256` | Fingerprint of the WebUI certificate, filled in by step 5 | *(empty, required)* |
+| `QBIT_PATH` | Path to `qbittorrent.exe` | `C:\Program Files\qBittorrent\qbittorrent.exe` |
+| `VPN_INTERFACE` | Name of the Proton VPN network adapter (`Get-NetAdapter` while connected) | `ProtonVPN` |
+
+If you skip this step, the first run creates the file from the template and asks you to fill it in.
 
 To store these files elsewhere, set the environment variable `QBIT_PROTON_PORT_HOME` to another folder.
 
@@ -109,32 +118,60 @@ INFO  qBittorrent updated: port 51413 on 'ProtonVPN'.
 | Command | What it does |
 |---|---|
 | `.\Sync-QbitProtonPort.ps1` | Sync the port, start qBittorrent if it's closed |
-| `.\Sync-QbitProtonPort.ps1 -SyncOnly` | Sync only if qBittorrent is already open (used by the task) |
+| `.\Sync-QbitProtonPort.ps1 -SyncOnly` | Sync only if qBittorrent is already open; if it's closed, do nothing (used by the task) |
+| `.\Sync-QbitProtonPort.ps1 -PauseOnError` | Same as the first line, but wait for Enter after an error so the window stays open (for shortcuts) |
 | `.\Sync-QbitProtonPort.ps1 -RegisterTask` / `-UnregisterTask` | Add or remove the 5-minute background task |
-| `.\Sync-QbitProtonPort.ps1 -ShowConfig` | Show where the settings, API key, log and certificate are stored |
+| `.\Sync-QbitProtonPort.ps1 -ShowConfig` | Show where the settings, API key, log and certificate are stored, and whether the task is registered |
 | `.\Sync-QbitProtonPort.ps1 -ResetCredential` | Store a new API key (after regenerating it in qBittorrent) |
 | `.\Sync-QbitProtonPort.ps1 -NewCertificate` | Renew the certificate (you get a warning 30 days before it expires), then redo step 5 in qBittorrent |
 
-Each run is logged to `%LOCALAPPDATA%\qbit-proton-port\logs\sync.log`. Exit code 0 means synced; 1 means an error.
+Each run is logged to `%LOCALAPPDATA%\qbit-proton-port\logs\sync.log`. Past 1 MB, the log is renamed `sync.log.1` and a new one starts. Exit code 0 means success (synced, nothing to do, or command done); 1 means an error, and qBittorrent is not started.
 
 ## Troubleshooting
 
 | Message | Fix |
 |---|---|
-| `Proton VPN is not running` / `not connected` | Start Proton VPN and connect to a P2P server |
+Messages are quoted by their fixed part; `...` stands for a variable part such as a path or a number.
+
+Errors (exit code 1, qBittorrent is not started):
+
+| Message | Fix |
+|---|---|
+| `Proton VPN is not running` / `Proton VPN is not connected` | Start Proton VPN and connect to a P2P server |
 | `Proton VPN exposes no forwarded port` | Turn on port forwarding (step 2), or wait a few seconds after connecting |
-| `Created ...\.env from the template` | Edit that file as in step 4, then continue with step 5 |
-| `WebUI is disabled` / `WebUI port is X but QBIT_API_PORT is Y` | Check step 3 and `.env` |
+| `Proton VPN log reports an invalid port` | Reconnect Proton VPN. If it persists, the log format may have changed |
+| `Created ... from the template` | The `.env` file was missing and has been created: edit it as in step 4, then continue with step 5 |
+| `Setting ... is missing or empty` | Fill in that setting in `.env` (step 4 or 5) |
+| `WebUI API unreachable` + `WebUI is disabled` | Enable the Web UI in qBittorrent (step 3) |
+| `WebUI API unreachable` + `WebUI port is ... but QBIT_API_PORT is ...` | Make `QBIT_API_PORT` in `.env` equal the WebUI port (step 3) |
+| `WebUI API unreachable` + `nothing listens on 127.0.0.1` | qBittorrent is still starting, or its WebUI IP address is not `127.0.0.1` (step 3) |
+| `WebUI API timed out` | qBittorrent is busy or frozen: retry, or restart it |
 | `TLS handshake failed: HTTPS is probably not enabled` | Do the qBittorrent part of step 5 |
 | `certificate (...) doesn't match QBIT_CERT_SHA256` | The certificate was changed: run `-NewCertificate` and redo step 5 |
 | `qBittorrent rejected the API key` | Run `-ResetCredential` with the current key |
-| `Missing secret.xml` (scheduled task) | Run the script once by hand to store the key |
+| `API key not stored yet` (scheduled task) | Run the script once by hand to store the key |
+| `Cannot decrypt ...secret.xml` | The file comes from another account or PC: run `-ResetCredential` |
+| `Empty API key, nothing saved` | Paste the key when asked; an empty entry is rejected |
+| `qBittorrent API ... returned HTTP` | Unexpected API error: check that qBittorrent is 5.2 or later |
+| `doesn't see a network interface named` | Fix `VPN_INTERFACE` in `.env` (adapter name while connected) |
+| `qBittorrent did not apply the settings` | qBittorrent refused the change: check its log, or set the port by hand |
+| `qBittorrent not found` | Fix `QBIT_PATH` in `.env` |
+| `qBittorrent settings not found` | Start qBittorrent once by hand so it creates its settings file |
+| `Cannot restrict permissions` | `-NewCertificate` couldn't secure the key folder; nothing was written. Check your rights on `%APPDATA%\qBittorrent` |
+
+Warnings (the run continues):
+
+| Message | Meaning |
+|---|---|
+| `WebUI certificate expires in ... days` | Run `-NewCertificate` and redo step 5 in qBittorrent |
+| `not bound to the VPN interface yet` | First launch only: qBittorrent may use all interfaces for a few seconds, until the script binds it to the VPN. The binding is then saved |
+| `Proton reports different ports` | Proton gave different public and private ports, which is unexpected; the public one is used |
 
 ## How it works
 
 - **Port source.** Proton VPN logs the forwarded port about every 10 seconds in `%LOCALAPPDATA%\Proton\Proton VPN\Logs\client-logs.txt`. The script accepts a port only if it was reported within the last 90 seconds and the VPN hasn't disconnected since. A future Proton VPN update that changes this log format would break detection; the script then fails safely with an error.
-- **qBittorrent closed.** The script edits `Session\Port` in `%APPDATA%\qBittorrent\qBittorrent.ini`, keeping a one-time backup in `qBittorrent.ini.bak`, then starts qBittorrent.
-- **qBittorrent open.** It reads and updates the settings through `/api/v2/app/preferences` and `/api/v2/app/setPreferences`.
+- **qBittorrent closed.** The script edits `Session\Port` in `%APPDATA%\qBittorrent\qBittorrent.ini`, keeping a one-time backup in `qBittorrent.ini.bak`, then starts qBittorrent minimized. It waits up to 30 seconds for the API, then continues as below.
+- **qBittorrent open.** It reads the settings through `/api/v2/app/preferences`. If needed, it changes the listening port and binds qBittorrent to the `VPN_INTERFACE` adapter, found through `/api/v2/app/networkInterfaceList`, with `/api/v2/app/setPreferences`. It then reads the settings again to confirm they were applied.
 
 ## Security
 
@@ -149,6 +186,10 @@ Each run is logged to `%LOCALAPPDATA%\qbit-proton-port\logs\sync.log`. Exit code
 - **Execution policy.** The scheduled task runs under your normal account, without admin rights, and doesn't bypass the PowerShell execution policy.
 - **Known limit.** qBittorrent itself stores the API key in plain text in `qBittorrent.ini`. Any program running under your account can read it; this is outside the script's control.
 - **Local files.** `.env`, `secret.xml` and the logs are stored in `%LOCALAPPDATA%\qbit-proton-port\`, outside the repository and outside any synced folder. `.env` holds no secret, only the port and the certificate fingerprint. The repository also git-ignores these names and certificate files as a safety net.
+
+## Contributing
+
+Before committing a change, run `.\harness\Test-Docs.ps1`. It checks that the script parses and that this README still matches it: parameters, settings, error messages and links. See [AGENTS.md](AGENTS.md) for the full Definition of Done.
 
 ## License
 

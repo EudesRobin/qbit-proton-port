@@ -113,7 +113,7 @@ function Save-ApiKey {
 function Get-ApiKey {
     param([bool] $CanPrompt)
     if (-not (Test-Path $SecretFile)) {
-        if (-not $CanPrompt) { throw "Missing $SecretFile. Run the script once interactively to store the API key." }
+        if (-not $CanPrompt) { throw "API key not stored yet ($SecretFile). Run the script once interactively to store it." }
         Save-ApiKey
     }
     try {

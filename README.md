@@ -1,5 +1,7 @@
 # qbit-proton-port
 
+[![validate](https://github.com/EudesRobin/qbit-proton-port/actions/workflows/validate.yml/badge.svg?branch=main)](https://github.com/EudesRobin/qbit-proton-port/actions/workflows/validate.yml)
+
 Keeps qBittorrent's listening port equal to the port forwarded by Proton VPN on Windows.
 
 Proton VPN gives you a random forwarded port for P2P, and it changes each time you connect. Unless qBittorrent listens on that exact port, other peers can't reach you. This script reads the current port from Proton VPN and sets it in qBittorrent:

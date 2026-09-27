@@ -103,11 +103,11 @@ INFO  qBittorrent updated: port 51413 on 'ProtonVPN'.
 
 ### 7. Optional: make it automatic
 
-- **Desktop shortcut** that starts qBittorrent through the script. Its target:
+- **Desktop shortcut** that syncs the port, then starts qBittorrent. Right-click the desktop, choose **New › Shortcut**, and enter this location, replacing `<repo>` with the folder from step 1:
   ```
-  pwsh.exe -NoProfile -File "C:\Tools\qbit-proton-port\Sync-QbitProtonPort.ps1" -PauseOnError
+  pwsh.exe -NoProfile -File "<repo>\Sync-QbitProtonPort.ps1" -PauseOnError
   ```
-  The window closes by itself unless something went wrong.
+  The window closes by itself unless something went wrong; then it stays open until you press Enter. To give the shortcut qBittorrent's icon, open its **Properties › Change Icon** and browse to `qbittorrent.exe`.
 - **Background re-sync** every 5 minutes while you are logged on, for when Proton VPN reconnects and changes the port:
   ```powershell
   .\Sync-QbitProtonPort.ps1 -RegisterTask     # remove with -UnregisterTask

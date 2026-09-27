@@ -12,6 +12,8 @@
 
     The WebUI API is reached over HTTPS on 127.0.0.1 with a pinned self-signed certificate,
     and authenticated with an API key stored DPAPI-encrypted in secret.xml.
+    Settings (.env), secret.xml and logs live in %LOCALAPPDATA%\qbit-proton-port
+    (override with the QBIT_PROTON_PORT_HOME environment variable).
 
 .EXAMPLE
     ./Sync-QbitProtonPort.ps1                  # sync, launch qBittorrent if needed
@@ -19,6 +21,7 @@
     ./Sync-QbitProtonPort.ps1 -NewCertificate  # create/renew the WebUI HTTPS certificate
     ./Sync-QbitProtonPort.ps1 -ResetCredential # store a new API key
     ./Sync-QbitProtonPort.ps1 -RegisterTask    # re-sync every 5 minutes while logged on
+    ./Sync-QbitProtonPort.ps1 -ShowConfig      # show where settings, key and logs are stored
 #>
 [CmdletBinding(DefaultParameterSetName = 'Sync')]
 param(
@@ -27,16 +30,19 @@ param(
     [Parameter(ParameterSetName = 'NewCertificate', Mandatory)] [switch] $NewCertificate,
     [Parameter(ParameterSetName = 'ResetCredential', Mandatory)] [switch] $ResetCredential,
     [Parameter(ParameterSetName = 'RegisterTask', Mandatory)] [switch] $RegisterTask,
-    [Parameter(ParameterSetName = 'UnregisterTask', Mandatory)] [switch] $UnregisterTask
+    [Parameter(ParameterSetName = 'UnregisterTask', Mandatory)] [switch] $UnregisterTask,
+    [Parameter(ParameterSetName = 'ShowConfig', Mandatory)] [switch] $ShowConfig
 )
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 $Root        = $PSScriptRoot
-$EnvFile     = Join-Path $Root '.env'
-$SecretFile  = Join-Path $Root 'secret.xml'
-$LogDir      = Join-Path $Root 'logs'
+# Settings, API key and logs live outside the repository, in a per-user, non-roaming folder.
+$DataDir     = if ($env:QBIT_PROTON_PORT_HOME) { $env:QBIT_PROTON_PORT_HOME } else { Join-Path $env:LOCALAPPDATA 'qbit-proton-port' }
+$EnvFile     = Join-Path $DataDir '.env'
+$SecretFile  = Join-Path $DataDir 'secret.xml'
+$LogDir      = Join-Path $DataDir 'logs'
 $LogFile     = Join-Path $LogDir 'sync.log'
 $QbitIni     = Join-Path $env:APPDATA 'qBittorrent\qBittorrent.ini'
 $SslDir      = Join-Path $env:APPDATA 'qBittorrent\ssl'
@@ -63,7 +69,8 @@ function Write-Log {
 
 function Read-EnvFile {
     if (-not (Test-Path $EnvFile)) {
-        throw "Missing $EnvFile. Copy .env.example to .env and fill it in (see README)."
+        Copy-Item (Join-Path $Root '.env.example') $EnvFile
+        throw "Created $EnvFile from the template: set QBIT_API_PORT in it, then run -NewCertificate (see README)."
     }
     $settings = @{}
     foreach ($line in Get-Content $EnvFile -Encoding utf8) {
@@ -423,7 +430,18 @@ function Register-SyncTask {
 # --- Main --------------------------------------------------------------------------
 
 try {
+    if (-not (Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir | Out-Null }
     switch ($PSCmdlet.ParameterSetName) {
+        'ShowConfig' {
+            [pscustomobject]@{
+                Settings    = $EnvFile
+                ApiKey      = "$SecretFile$(if (-not (Test-Path $SecretFile)) { ' (not stored yet)' })"
+                Log         = $LogFile
+                Certificate = $SslDir
+                Task        = if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) { 'registered' } else { 'not registered' }
+            } | Format-List | Out-Host
+            exit 0
+        }
         'NewCertificate'  { New-WebUiCertificate; exit 0 }
         'ResetCredential' { Save-ApiKey; exit 0 }
         'RegisterTask'    { Register-SyncTask; exit 0 }

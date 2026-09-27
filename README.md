@@ -53,13 +53,19 @@ Click **Apply**.
 
 ### 4. Create your settings file
 
+Your settings, API key and logs are kept outside the script folder, in `%LOCALAPPDATA%\qbit-proton-port\`. That folder is private to your account and not synced, so updating or re-cloning the script never touches them.
+
 ```powershell
 cd C:\Tools\qbit-proton-port
-Copy-Item .env.example .env
-notepad .env
+$data = "$env:LOCALAPPDATA\qbit-proton-port"
+New-Item -ItemType Directory $data -Force | Out-Null
+Copy-Item .env.example "$data\.env"
+notepad "$data\.env"
 ```
 
 Set `QBIT_API_PORT` to the port chosen in step 3. The other defaults usually fit.
+
+To store these files elsewhere, set the environment variable `QBIT_PROTON_PORT_HOME` to another folder.
 
 ### 5. Switch the API to HTTPS
 
@@ -105,10 +111,11 @@ INFO  qBittorrent updated: port 51413 on 'ProtonVPN'.
 | `.\Sync-QbitProtonPort.ps1` | Sync the port, start qBittorrent if it's closed |
 | `.\Sync-QbitProtonPort.ps1 -SyncOnly` | Sync only if qBittorrent is already open (used by the task) |
 | `.\Sync-QbitProtonPort.ps1 -RegisterTask` / `-UnregisterTask` | Add or remove the 5-minute background task |
+| `.\Sync-QbitProtonPort.ps1 -ShowConfig` | Show where the settings, API key, log and certificate are stored |
 | `.\Sync-QbitProtonPort.ps1 -ResetCredential` | Store a new API key (after regenerating it in qBittorrent) |
 | `.\Sync-QbitProtonPort.ps1 -NewCertificate` | Renew the certificate (you get a warning 30 days before it expires), then redo step 5 in qBittorrent |
 
-Each run is logged to `logs\sync.log`. Exit code 0 means synced; 1 means an error.
+Each run is logged to `%LOCALAPPDATA%\qbit-proton-port\logs\sync.log`. Exit code 0 means synced; 1 means an error.
 
 ## Troubleshooting
 
@@ -116,6 +123,7 @@ Each run is logged to `logs\sync.log`. Exit code 0 means synced; 1 means an erro
 |---|---|
 | `Proton VPN is not running` / `not connected` | Start Proton VPN and connect to a P2P server |
 | `Proton VPN exposes no forwarded port` | Turn on port forwarding (step 2), or wait a few seconds after connecting |
+| `Created ...\.env from the template` | Edit that file as in step 4, then continue with step 5 |
 | `WebUI is disabled` / `WebUI port is X but QBIT_API_PORT is Y` | Check step 3 and `.env` |
 | `TLS handshake failed: HTTPS is probably not enabled` | Do the qBittorrent part of step 5 |
 | `certificate (...) doesn't match QBIT_CERT_SHA256` | The certificate was changed: run `-NewCertificate` and redo step 5 |
@@ -140,7 +148,7 @@ Each run is logged to `logs\sync.log`. Exit code 0 means synced; 1 means an erro
 - **Private key.** It sits in `%APPDATA%\qBittorrent\ssl\`, readable only by your account and SYSTEM.
 - **Execution policy.** The scheduled task runs under your normal account, without admin rights, and doesn't bypass the PowerShell execution policy.
 - **Known limit.** qBittorrent itself stores the API key in plain text in `qBittorrent.ini`. Any program running under your account can read it; this is outside the script's control.
-- **Git.** `.env`, `secret.xml`, `logs/` and certificate files are git-ignored. `.env` holds no secret, only the port and the certificate fingerprint.
+- **Local files.** `.env`, `secret.xml` and the logs are stored in `%LOCALAPPDATA%\qbit-proton-port\`, outside the repository and outside any synced folder. `.env` holds no secret, only the port and the certificate fingerprint. The repository also git-ignores these names and certificate files as a safety net.
 
 ## License
 

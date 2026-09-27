@@ -9,12 +9,12 @@ This file is the **only authoritative source of instructions** in the repository
 | Path | Role |
 |---|---|
 | `Sync-QbitProtonPort.ps1` | The whole tool: Proton VPN port detection, `.ini` edit, WebUI API over pinned HTTPS, certificate and scheduled-task management |
-| `.env.example` | Settings template. The real `.env` is local and git-ignored |
+| `.env.example` | Settings template, copied to `%LOCALAPPDATA%\qbit-proton-port\.env` |
 | `README.md` | User documentation. Its tables must match the script's parameters and error messages |
 | `LICENSE` | MIT |
 | `.idea/` | Shared IDE settings. `workspace.xml` and `misc.xml` (local JDK) are ignored |
 
-Local-only and git-ignored: `.env`, `secret.xml` (API key, DPAPI-encrypted), `logs/`.
+Runtime files live **outside the repository**, in `%LOCALAPPDATA%\qbit-proton-port\` (the `QBIT_PROTON_PORT_HOME` environment variable overrides it): `.env`, `secret.xml` (API key, DPAPI-encrypted) and `logs\sync.log`. `-ShowConfig` prints the actual paths. Never move them back into the repository; `.gitignore` still lists them as a safety net.
 
 ## External contracts
 
@@ -48,18 +48,19 @@ A change is done only when the loop for its file type is green. These are **loop
    $e=$null; [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path .\Sync-QbitProtonPort.ps1), [ref]$null, [ref]$e); $e.Count
    ```
 2. **Real run**: `.\Sync-QbitProtonPort.ps1 -SyncOnly` against the running Proton VPN and qBittorrent. Read the actual output and exit code.
-3. **Seen red**: a check that was added or modified must be seen failing once on a deliberately broken case. Back up `.env` and `secret.xml` first, and restore them in a `finally` block.
+3. **Seen red**: a check that was added or modified must be seen failing once on a deliberately broken case. Don't touch the user's real files. Point `QBIT_PROTON_PORT_HOME` to a temporary folder, copy `.env` and `secret.xml` into it and break the copies. Remove the variable and the folder afterwards.
 
    | Case | How to break it | Expected |
    |---|---|---|
-   | Wrong fingerprint | Change `QBIT_CERT_SHA256` in `.env` | Refused, and the key is not sent |
-   | Wrong API port | Change `QBIT_API_PORT` in `.env` | The error names the port mismatch |
-   | Wrong key | Replace `secret.xml` with a dummy key | "rejected the API key" |
+   | Missing `.env` | Empty temporary folder | `.env` created from the template, then error |
+   | Wrong fingerprint | Change `QBIT_CERT_SHA256` in the copied `.env` | Refused, and the key is not sent |
+   | Wrong API port | Change `QBIT_API_PORT` in the copied `.env` | The error names the port mismatch |
+   | Wrong key | Replace the copied `secret.xml` with a dummy key | "rejected the API key" |
    | Port drift | Change the port through the API | Restored live |
 4. **Scenarios that need the user**, when the affected path changed. Ask the user to act; never do these yourself:
    - qBittorrent closed: the `.ini` is updated, then qBittorrent is launched.
    - VPN disconnected: error, and nothing launched.
-5. The key doesn't appear in `logs\sync.log`.
+5. The key doesn't appear in the log (path given by `-ShowConfig`).
 
 ### Documentation (`*.md`)
 
@@ -69,7 +70,7 @@ A change is done only when the loop for its file type is green. These are **loop
 
 ### Before any commit
 
-`git status --short --ignored` shows `.env`, `secret.xml` and `logs/` as ignored (`!!`), and the staged diff has no key, private path, personal IP or real WebUI port.
+`git status --short --ignored` shows no `.env`, `secret.xml` or `logs/` in the working tree. The staged diff has no key, private path, personal IP or real WebUI port.
 
 ## Git
 

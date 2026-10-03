@@ -12,7 +12,8 @@
       ip           no IPv4 address other than 127.0.0.1, 0.0.0.0 and the allowed OIDs ($AllowedIp)
       local        none of the values of the local runtime .env (QBIT_API_PORT, QBIT_CERT_SHA256), when it exists
 
-    Messages give the file and line, never the matched value.
+    Messages give the file and line, never the matched value. On GitHub Actions, each problem is also
+    an error annotation on that file and line, with the same message.
 
 .PARAMETER Root
     Repository root. Defaults to the parent of this folder.
@@ -31,7 +32,11 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 $Failures = [Collections.Generic.List[string]]::new()
-function Fail([string] $Rule, [string] $Message) { $Failures.Add("[$Rule] $Message") }
+. (Join-Path $PSScriptRoot 'GitHubActions.ps1')
+function Fail([string] $Rule, [string] $Message, [string] $File, [int] $Line) {
+    $Failures.Add("[$Rule] $Message")
+    Write-GitHubError $Rule $Message $File $Line
+}
 
 $ForbiddenFile = '(^|/)(\.env|secret\.xml|qBittorrent\.ini(\.bak)?)$|(^|/)logs/|\.(crt|key|pem|pfx)$'
 $Patterns = [ordered]@{
@@ -61,12 +66,12 @@ function Test-Line([string] $File, [int] $Number, [string] $Line) {
     foreach ($rule in $Patterns.Keys) {
         $found = @([regex]::Matches($Line, $Patterns[$rule]) | ForEach-Object Value)
         if ($rule -eq 'ip') { $found = $found | Where-Object { $_ -notin $AllowedIp } }
-        if ($found) { Fail $rule "${File}:$Number" }
+        if ($found) { Fail $rule "${File}:$Number" $File $Number }
     }
     foreach ($name in $local.Keys) {
         # The fingerprint is compared without colons, like the script does.
         $text = if ($name -eq 'QBIT_CERT_SHA256') { $Line -replace ':', '' } else { $Line }
-        if ($text -match $local[$name]) { Fail 'local' "${File}:$Number contains your local $name value" }
+        if ($text -match $local[$name]) { Fail 'local' "${File}:$Number contains your local $name value" $File $Number }
     }
 }
 
@@ -74,7 +79,7 @@ $isGit = (git -C $Root rev-parse --is-inside-work-tree 2>$null) -eq 'true'
 if ($Staged) {
     if (-not $isGit) { Write-Host "$Root is not a git repository." -ForegroundColor Yellow; exit 2 }
     $files = @(git -C $Root diff --cached --name-only --diff-filter=ACMR)
-    foreach ($f in $files) { if ($f -match $ForbiddenFile) { Fail 'files' "$f is staged" } }
+    foreach ($f in $files) { if ($f -match $ForbiddenFile) { Fail 'files' "$f is staged" $f } }
     # Added lines only, with the file and line number from each hunk header.
     $file = $null; $number = 0
     foreach ($line in git -C $Root -c core.quotepath=off diff --cached -U0 --no-color --diff-filter=ACMR) {
@@ -89,7 +94,7 @@ if ($Staged) {
     foreach ($f in $files) {
         $path = Join-Path $Root $f
         if (-not (Test-Path $path -PathType Leaf)) { continue }   # deleted in the working tree
-        if ($f -match $ForbiddenFile) { Fail 'files' "$f would be published" }
+        if ($f -match $ForbiddenFile) { Fail 'files' "$f would be published" $f }
         $number = 0
         foreach ($line in [IO.File]::ReadLines($path)) { $number++; Test-Line $f $number $line }
     }

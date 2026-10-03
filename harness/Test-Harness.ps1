@@ -10,7 +10,9 @@
       copy   a copy of the repository files (tracked and untracked, minus git-ignored ones), altered;
       empty  an empty folder, filled by the alteration (commit messages).
     Each case gets its own empty data folder through QBIT_PROTON_PORT_HOME, so the local .env never
-    changes a result. Every rule added to a check gets its broken case here.
+    changes a result. GITHUB_ACTIONS and GITHUB_STEP_SUMMARY are cleared for each case, unless the case
+    sets them: a broken copy must not annotate the pull request. Every rule added to a check gets its
+    broken case here.
 
     Literals that look private (addresses, user paths, fingerprints, keys) are built by concatenation,
     so that Test-Secrets.ps1 stays green on this file.
@@ -63,9 +65,11 @@ function Message([string] $Text) { Add-Text 'MSG' $Text }
 function Case {
     param([string] $Name, [string] $Check, [ValidateSet('real', 'copy', 'empty')] [string] $Target,
           [scriptblock] $Alter, [int] $Exit, [string] $Expect,
-          [string[]] $Arguments = @('-Root', '{root}'), [hashtable] $Data = @{})
+          [string[]] $Arguments = @('-Root', '{root}'), [hashtable] $Data = @{},
+          [hashtable] $Env = @{}, [string] $Absent)
+    # Absent: a text the output must not contain.
     [pscustomobject]@{ Name = $Name; Check = $Check; Target = $Target; Alter = $Alter; Exit = $Exit
-                       Expect = $Expect; Arguments = $Arguments; Data = $Data }
+                       Expect = $Expect; Arguments = $Arguments; Data = $Data; Env = $Env; Absent = $Absent }
 }
 
 $Script = 'Sync-QbitProtonPort.ps1'
@@ -92,11 +96,13 @@ $Cases = @(
     Case 'consistency: stale troubleshooting entry' $C copy (Edit-Text 'README.md' '`Proton VPN log reports an invalid port`' '`Proton VPN log reports a bogus port`') 1 '[stale]'
     Case 'consistency: dead inline link' $C copy (Add-Text 'README.md' "`n[x](./absent.md)") 1 '[links]'
     Case 'consistency: dead reference link' $C copy (Add-Text 'README.md' "`n[r]: ./absent.md") 1 '[links]'
-    Case 'consistency: dead link from a subfolder' $C copy (Add-Text 'docs/HARNESS.md' "`n[x](./AGENTS.md)") 1 '[links] HARNESS.md'
+    Case 'consistency: dead link from a subfolder' $C copy (Add-Text 'docs/HARNESS.md' "`n[x](./AGENTS.md)") 1 '[links] docs/HARNESS.md'
     Case 'consistency: dead anchor, same file' $C copy (Add-Text 'README.md' "`n[x](#nowhere)") 1 '[anchors]'
     Case 'consistency: dead anchor, other file' $C copy (Add-Text 'README.md' "`n[x](AGENTS.md#nowhere)") 1 '[anchors]'
     Case 'consistency: table without rows' $C copy (Add-Text 'AGENTS.md' "`n| A | B |`n|---|---|`nText") 1 '[tables]'
     Case 'consistency: text after a closing fence' $C copy (Add-Text 'README.md' "`n$($Fence)text`nx`n$Fence See the rest.") 1 '[fences]'
+    Case 'consistency: annotation in CI' $C copy (Add-Text 'docs/HARNESS.md' "`n[x](./absent.md)") 1 '::error file=docs/HARNESS.md,line=' -Env @{ GITHUB_ACTIONS = 'true' }
+    Case 'consistency: no annotation outside CI' $C copy (Add-Text 'docs/HARNESS.md' "`n[x](./absent.md)") 1 '[links]' -Absent '::error'
 
     # --- Test-Secrets.ps1
     Case 'secrets: real repository' $S real $null 0 'GREEN'
@@ -109,6 +115,7 @@ $Cases = @(
     Case 'secrets: user folder path' $S copy (Add-Text 'README.md' $UserPath) 1 '[paths] README.md'
     Case 'secrets: path placeholder allowed' $S copy (Add-Text 'README.md' 'C:\Users\<you>\x and %LOCALAPPDATA%') 0 'GREEN'
     Case 'secrets: IPv4 address' $S copy (Add-Text 'AGENTS.md' "WebUI on $Ip") 1 '[ip] AGENTS.md'
+    Case 'secrets: annotation without the value' $S copy (Add-Text 'AGENTS.md' "WebUI on $Ip") 1 '::error file=AGENTS.md,line=' -Env @{ GITHUB_ACTIONS = 'true' } -Absent $Ip
     Case 'secrets: local API port' $S copy (Add-Text 'README.md' 'Port 45678 here.') 1 '[local] README.md' -Data @{ '.env' = "QBIT_API_PORT=45678`nQBIT_CERT_SHA256=" }
     Case 'secrets: staged settings file' $S copy (Stage (Add-Text '.env' 'QBIT_API_PORT=1')) 1 '[files] .env is staged' @('-Root', '{root}', '-Staged')
     Case 'secrets: staged IPv4 address' $S copy (Stage (Add-Text 'README.md' "`nWebUI on $Ip")) 1 '[ip] README.md' @('-Root', '{root}', '-Staged')
@@ -128,7 +135,9 @@ $Cases = @(
 )
 
 $failed = 0
-$savedHome = $env:QBIT_PROTON_PORT_HOME
+$CiVariables = 'GITHUB_ACTIONS', 'GITHUB_STEP_SUMMARY'
+$saved = @{}
+foreach ($name in @('QBIT_PROTON_PORT_HOME') + $CiVariables) { $saved[$name] = [Environment]::GetEnvironmentVariable($name) }
 foreach ($c in $Cases) {
     $work = Join-Path ([IO.Path]::GetTempPath()) "qbit-harness-$([Guid]::NewGuid().ToString('N').Substring(0, 8))"
     $target = if ($c.Target -eq 'real') { $Root } else { Join-Path $work 'target' }
@@ -141,17 +150,19 @@ foreach ($c in $Cases) {
         if ($c.Alter) { & $c.Alter $target | Out-Null }
         $arguments = @($c.Arguments | ForEach-Object { $_.Replace('{root}', $target) })
         $env:QBIT_PROTON_PORT_HOME = $dataDir
+        foreach ($name in $CiVariables) { [Environment]::SetEnvironmentVariable($name, $c.Env[$name]) }
         $output = (& pwsh -NoProfile -File (Join-Path $PSScriptRoot $c.Check) @arguments 2>&1 | Out-String)
         $exit = $LASTEXITCODE
     } finally {
-        $env:QBIT_PROTON_PORT_HOME = $savedHome
+        foreach ($name in $saved.Keys) { [Environment]::SetEnvironmentVariable($name, $saved[$name]) }
         if (Test-Path $work) { Remove-Item $work -Recurse -Force }
     }
-    if ($exit -eq $c.Exit -and $output.Contains($c.Expect)) {
+    if ($exit -eq $c.Exit -and $output.Contains($c.Expect) -and -not ($c.Absent -and $output.Contains($c.Absent))) {
         Write-Host "ok    $($c.Name)" -ForegroundColor Gray
     } else {
         $failed++
-        Write-Host "FAIL  $($c.Name) : expected exit $($c.Exit) and '$($c.Expect)', got exit $exit" -ForegroundColor Red
+        $without = if ($c.Absent) { ", without '$($c.Absent)'" } else { '' }
+        Write-Host "FAIL  $($c.Name) : expected exit $($c.Exit) and '$($c.Expect)'$without, got exit $exit" -ForegroundColor Red
         Write-Host ($output.TrimEnd() -replace '(?m)^', '      ')
     }
 }

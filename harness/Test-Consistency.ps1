@@ -20,6 +20,8 @@
     Troubleshooting rows quote the static part of a message in backticks; "..." stands for a variable part.
     A message is matched when one of its static parts (10+ characters) and a quoted fragment contain each other.
 
+    On GitHub Actions, each problem is also an error annotation on its file, and on its line when known.
+
 .PARAMETER Root
     Repository root. Defaults to the parent of this folder; point it to a copy to see a rule fail.
 #>
@@ -28,11 +30,17 @@ param([string] $Root = (Split-Path $PSScriptRoot -Parent))
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-$ScriptPath = Join-Path $Root 'Sync-QbitProtonPort.ps1'
+$ScriptFile = 'Sync-QbitProtonPort.ps1'
+$ScriptPath = Join-Path $Root $ScriptFile
 $ReadmePath = Join-Path $Root 'README.md'
 $EnvExample = Join-Path $Root '.env.example'
 $Failures   = [Collections.Generic.List[string]]::new()
-function Fail([string] $Rule, [string] $Message) { $Failures.Add("[$Rule] $Message") }
+. (Join-Path $PSScriptRoot 'GitHubActions.ps1')
+# File is relative to Root, with forward slashes: the annotation points to it in the pull request.
+function Fail([string] $Rule, [string] $Message, [string] $File, [int] $Line) {
+    $Failures.Add("[$Rule] $Message")
+    Write-GitHubError $Rule $Message $File $Line
+}
 
 # Environment variables the script only reads from Windows, not user-facing settings.
 $SystemEnv = 'LOCALAPPDATA', 'APPDATA', 'USERNAME', 'USERDOMAIN'
@@ -48,23 +56,23 @@ $templateNames = foreach ($line in Get-Content $EnvExample -Encoding utf8) {
 # --- 1. Parse --------------------------------------------------------------------
 $tokens = $null; $parseErrors = $null
 $ast = [Management.Automation.Language.Parser]::ParseFile($ScriptPath, [ref]$tokens, [ref]$parseErrors)
-foreach ($e in $parseErrors) { Fail 'parse' "line $($e.Extent.StartLineNumber): $($e.Message)" }
+foreach ($e in $parseErrors) { Fail 'parse' "line $($e.Extent.StartLineNumber): $($e.Message)" $ScriptFile $e.Extent.StartLineNumber }
 
 # --- 2. Parameters ---------------------------------------------------------------------
 foreach ($p in $ast.ParamBlock.Parameters) {
     $name = $p.Name.VariablePath.UserPath
-    if ($readme -notmatch "-$name\b") { Fail 'params' "parameter -$name is not documented in README.md" }
+    if ($readme -notmatch "-$name\b") { Fail 'params' "parameter -$name is not documented in README.md" $ScriptFile $p.Extent.StartLineNumber }
 }
 
 # --- 3. Settings and environment variables ------------------------------------------
 foreach ($name in $templateNames) {
-    if ($readme -notmatch "``$name``") { Fail 'settings' "setting $name (.env.example) is not documented in README.md" }
+    if ($readme -notmatch "``$name``") { Fail 'settings' "setting $name (.env.example) is not documented in README.md" '.env.example' }
 }
 $envVars = $ast.FindAll({ param($n) $n -is [Management.Automation.Language.VariableExpressionAst] -and
         $n.VariablePath.DriveName -eq 'env' }, $true) |
     ForEach-Object { $_.VariablePath.UserPath -replace '^env:', '' } | Sort-Object -Unique
 foreach ($v in $envVars | Where-Object { $_ -notin $SystemEnv }) {
-    if ($readme -notmatch "``$v``") { Fail 'settings' "environment variable $v is not documented in README.md" }
+    if ($readme -notmatch "``$v``") { Fail 'settings' "environment variable $v is not documented in README.md" $ScriptFile }
 }
 
 # --- Arguments of a command call, by parameter name then by position ----------------------
@@ -89,7 +97,7 @@ foreach ($c in $ast.FindAll({ param($n) $n -is [Management.Automation.Language.C
         $n.GetCommandName() -eq 'Get-Setting' }, $true)) {
     $name = (Get-CommandArguments $c 'Settings', 'Name')['Name']
     if ($name -is [Management.Automation.Language.StringConstantExpressionAst] -and $name.Value -notin $templateNames) {
-        Fail 'template' "line $($c.Extent.StartLineNumber): setting $($name.Value) is read by the script but missing from .env.example"
+        Fail 'template' "line $($c.Extent.StartLineNumber): setting $($name.Value) is read by the script but missing from .env.example" $ScriptFile $c.Extent.StartLineNumber
     }
 }
 
@@ -135,7 +143,7 @@ if ($diag) {
 
 # --- Troubleshooting fragments of the README -------------------------------------------
 $section = [regex]::Match($readme, '(?ms)^## Troubleshooting\s*$(.*?)(?=^## |\z)').Groups[1].Value
-if (-not $section) { Fail 'readme' 'README.md has no "## Troubleshooting" section' }
+if (-not $section) { Fail 'readme' 'README.md has no "## Troubleshooting" section' 'README.md' }
 $fragments = foreach ($row in $section -split "`r?`n" | Where-Object { $_ -match '^\|\s*`' }) {
     $firstCell = ($row -split '(?<!\\)\|')[1]
     foreach ($m in [regex]::Matches($firstCell, '`([^`]+)`')) {
@@ -151,15 +159,17 @@ foreach ($msg in $messages) {
     if (-not $msg.Parts) { continue }   # bare rethrow or fully dynamic message
     $covered = $msg.Parts | Where-Object { $part = $_
         $fragments | Where-Object { $_.Length -ge $MinLength -and ($part.Contains($_) -or $_.Contains($part)) } }
-    if (-not $covered) { Fail 'omission' "line $($msg.Line): '$($msg.Parts[0])' has no row in README Troubleshooting" }
+    if (-not $covered) { Fail 'omission' "line $($msg.Line): '$($msg.Parts[0])' has no row in README Troubleshooting" $ScriptFile $msg.Line }
 }
 
 # --- 5. No stale entry -------------------------------------------------------------------
 foreach ($f in $fragments | Sort-Object -Unique) {
-    if (-not $scriptText.Contains($f)) { Fail 'stale' "README Troubleshooting quotes '$f', which the script no longer contains" }
+    if (-not $scriptText.Contains($f)) { Fail 'stale' "README Troubleshooting quotes '$f', which the script no longer contains" 'README.md' }
 }
 
 # --- Markdown files: lines outside fenced code blocks ----------------------------------------
+function Get-LineNumber([string] $Text, [int] $Index) { ($Text.Substring(0, $Index) -split "`n").Count }
+
 function Get-ProseLines([string] $Text) {
     $inFence = $false
     foreach ($line in $Text -split "`r?`n") {
@@ -181,6 +191,7 @@ function Get-Anchors([string] $Path) {
 $mdFiles = Get-ChildItem $Root -Recurse -Filter *.md -File | Where-Object FullName -notmatch '\\\.git\\'
 $anchorCache = @{}
 foreach ($md in $mdFiles) {
+    $rel = [IO.Path]::GetRelativePath($Root, $md.FullName) -replace '\\', '/'
     $text = Get-Content $md.FullName -Raw -Encoding utf8
     $prose = @(Get-ProseLines $text)
 
@@ -190,7 +201,7 @@ foreach ($md in $mdFiles) {
     foreach ($line in $text -split "`r?`n") {
         $n++
         if ($line -notmatch '^\s*(```|~~~)') { continue }
-        if ($inFence -and $line -match '^\s*(```|~~~)\s*\S') { Fail 'fences' "$($md.Name): line ${n}: text after a closing fence" }
+        if ($inFence -and $line -match '^\s*(```|~~~)\s*\S') { Fail 'fences' "${rel}: line ${n}: text after a closing fence" $rel $n }
         $inFence = -not $inFence
     }
 
@@ -202,12 +213,12 @@ foreach ($md in $mdFiles) {
         $anchor = $m.Groups[2].Value.TrimStart('#')
         if ($target -match '^[a-z]+:') { continue }   # http:, https:, mailto:
         $path = if ($target) { Join-Path $md.DirectoryName $target } else { $md.FullName }
-        if (-not (Test-Path $path)) { Fail 'links' "$($md.Name): link '$target' doesn't resolve"; continue }
+        if (-not (Test-Path $path)) { Fail 'links' "${rel}: link '$target' doesn't resolve" $rel (Get-LineNumber $text $m.Index); continue }
         if (-not $anchor -or $path -notmatch '\.md$') { continue }
         $full = (Resolve-Path $path).Path
         if (-not $anchorCache.ContainsKey($full)) { $anchorCache[$full] = @(Get-Anchors $full) }
         if ($anchor -notin $anchorCache[$full]) {
-            Fail 'anchors' "$($md.Name): anchor '#$anchor' matches no heading of $(Split-Path $full -Leaf)"
+            Fail 'anchors' "${rel}: anchor '#$anchor' matches no heading of $(Split-Path $full -Leaf)" $rel (Get-LineNumber $text $m.Index)
         }
     }
 
@@ -216,7 +227,7 @@ foreach ($md in $mdFiles) {
         # A separator row has at least one pipe; a bare --- is a horizontal rule.
         if ($prose[$i] -notmatch '\|' -or $prose[$i] -notmatch '^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$') { continue }
         if ($i + 1 -ge $prose.Count -or $prose[$i + 1] -notmatch '^\s*\|') {
-            Fail 'tables' "$($md.Name): table header '$($prose[$i - 1].Trim())' has no row"
+            Fail 'tables' "${rel}: table header '$($prose[$i - 1].Trim())' has no row" $rel
         }
     }
 }

@@ -49,7 +49,7 @@ The tag follows semantic versioning, `MAJOR.MINOR.PATCH`, without a prefix: `1.0
 
 Incrementing a number resets the ones after it: `1.4.2` becomes `1.5.0` or `2.0.0`.
 
-Tag only **after the pull request that closes the release is merged**, never on a working branch: the tag points to the state of `main` that users download. First check that the latest `validate` run on `main` is green, in the Actions tab of the GitHub repository.
+Tag only **after the pull request that closes the release is merged**, never on a working branch: the tag points to the state of `main` that users download. First check that the latest run of the `CI` workflow on `main` is green, in the Actions tab of the GitHub repository.
 
 ```powershell
 git switch main

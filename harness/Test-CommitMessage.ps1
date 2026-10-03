@@ -1,7 +1,7 @@
 #Requires -Version 7.3
 <#
 .SYNOPSIS
-    Checks a commit message against the Git rules of AGENTS.md. Exit 0 = green, 1 = red.
+    Checks a commit message against the commit rules of docs/CONTRIBUTING.md. Exit 0 = green, 1 = red.
 
 .DESCRIPTION
     Called by the commit-msg hook (.githooks/commit-msg). Rules:

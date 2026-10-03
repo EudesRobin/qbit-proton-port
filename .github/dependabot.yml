@@ -1,4 +1,4 @@
-# Proposes updates of the pinned GitHub Actions (AGENTS.md, Git): the SHA and its version comment.
+# Proposes updates of the pinned GitHub Actions (docs/CONTRIBUTING.md, GitHub Actions): the SHA and its version comment.
 version: 2
 updates:
   - package-ecosystem: github-actions

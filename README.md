@@ -198,11 +198,7 @@ Warnings (the run continues):
 
 Before committing a change, run `.\harness\Invoke-Harness.ps1`. It checks that the script parses and that this README still matches it: parameters, settings, error messages, links and tables. It also checks that no secret, runtime file or private value would be published, and tests these checks against deliberately broken copies of the repository.
 
-To run these checks on every commit, and to check commit messages, enable the repository's git hooks once per clone:
-
-```powershell
-git config core.hooksPath .githooks
-``` See [AGENTS.md](AGENTS.md) for the full Definition of Done.
+To run these checks on every commit, and to check commit messages, [enable the repository's git hooks](docs/CONTRIBUTING.md#setup) once per clone. See [AGENTS.md](AGENTS.md) for the full Definition of Done, and [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for commits, pull requests and releases.
 
 ## License
 

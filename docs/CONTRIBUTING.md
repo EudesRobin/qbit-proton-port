@@ -45,7 +45,7 @@ The README is the user's documentation; [AGENTS.md](../AGENTS.md) and this folde
 
 ## Releases
 
-A release is an annotated git tag on a commit of `main`. The version number lives in the tag only, in no file.
+A release is an annotated git tag on a commit of `main`, published as a GitHub Release whose notes are the version's section of [CHANGELOG.md](../CHANGELOG.md). The tag defines the version: besides it, only the changelog heading written in the release pull request names it.
 
 The tag follows semantic versioning, `MAJOR.MINOR.PATCH`, without a prefix: `1.0.0`, never `v1.0.0`. Choose the number to increment from all the changes since the previous release, as seen by a user who already runs the script:
 
@@ -57,15 +57,29 @@ The tag follows semantic versioning, `MAJOR.MINOR.PATCH`, without a prefix: `1.0
 
 Incrementing a number resets the ones after it: `1.4.2` becomes `1.5.0` or `2.0.0`.
 
-Tag only **after the pull request that closes the release is merged**, never on a working branch: the tag points to the state of `main` that users download. First check that the latest run of the `CI` workflow on `main` is green, in the Actions tab of the GitHub repository.
+### Changelog
 
-```powershell
-git switch main
-git pull --ff-only
-git tag -a <version> -m "<version>"
-git push origin <version>
-```
+[CHANGELOG.md](../CHANGELOG.md) follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and lists what a user of the script can notice. A pull request with such a change adds an entry under `## [Unreleased]`, in one of these subsections, in this order: `Upgrade`, `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`. Changes to the harness, CI or contributor documentation get no entry.
+
+`Upgrade` says what an existing setup must do, such as registering the scheduled task again: a version raising `MAJOR` must have one. `Test-Consistency.ps1` checks the format, the order of the versions and their dates, the link references and this `Upgrade` section; the wording of the entries is checked by reading.
+
+### Release steps
+
+1. **Release pull request**, titled `chore: version <version>`: in `CHANGELOG.md`, rename `## [Unreleased]` to `## [<version>] - <YYYY-MM-DD>`, add an empty `## [Unreleased]` above it, and update the link references at the end of the file (`[Unreleased]` compares `<version>...HEAD`, `[<version>]` compares the previous version with `<version>`).
+2. **Merge it**, then check that the latest run of the `CI` workflow on `main` is green, in the Actions tab of the GitHub repository.
+3. **Tag**, never on a working branch: the tag points to the state of `main` that users download.
+
+   ```powershell
+   git switch main
+   git pull --ff-only
+   git tag -a <version> -m "<version>"
+   git push origin <version>
+   ```
+
+4. **Check the release.** Pushing the tag runs the [Release workflow](../.github/workflows/release.yml), which publishes the GitHub Release with the version's changelog section as notes. Check its run, then the release page.
+
+A tag published without its GitHub Release, or whose run failed, is published again on demand: `gh workflow run release.yml -f tag=<version>`. That run reads `CHANGELOG.md` from `main`.
 
 - **Annotated tag** (`-a`): it records the author and the release date, which a lightweight tag doesn't.
-- **Ask before publishing.** `git push` makes the tag public: get the user's approval before running it.
+- **Ask before publishing.** `git push` of the tag, and `gh workflow run release.yml`, make the version public: get the user's approval before running them.
 - **Never move or delete a published tag**: a clone that already fetched it would keep the old target. Fix a mistake with a new release.

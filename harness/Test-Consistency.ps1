@@ -16,6 +16,9 @@
       8. Every setting the script reads (Get-Setting) is in .env.example.
       9. Every Markdown table has at least one data row.
      10. No text follows a closing code fence on its line: GitHub would keep the block open to the end of the file.
+     11. CHANGELOG.md follows Keep a Changelog: its first section is ## [Unreleased], the others are
+         ## [X.Y.Z] - YYYY-MM-DD with decreasing versions and dates, subsections are Upgrade, Added, Changed, Deprecated, Removed, Fixed or Security,
+         every section has a link reference, and a version raising MAJOR has an Upgrade subsection.
 
     Troubleshooting rows quote the static part of a message in backticks; "..." stands for a variable part.
     A message is matched when one of its static parts (10+ characters) and a quoted fragment contain each other.
@@ -232,12 +235,64 @@ foreach ($md in $mdFiles) {
     }
 }
 
+# --- 11. Changelog -----------------------------------------------------------------------------
+$ChangelogFile = 'CHANGELOG.md'
+$ChangelogSections = 'Upgrade', 'Added', 'Changed', 'Deprecated', 'Removed', 'Fixed', 'Security'
+$changelogPath = Join-Path $Root $ChangelogFile
+$releases = [Collections.Generic.List[object]]::new()
+if (-not (Test-Path $changelogPath)) { Fail 'changelog' "$ChangelogFile is missing" $ChangelogFile }
+else {
+    $changelog = Get-Content $changelogPath -Raw -Encoding utf8
+    $n = 0; $headings = 0; $current = $null
+    foreach ($line in $changelog -split "`r?`n") {
+        $n++
+        if ($line -match '^##\s+(.+?)\s*$') {
+            $heading = $Matches[1]; $headings++; $current = $null
+            if ($headings -eq 1) {
+                if ($heading -ne '[Unreleased]') { Fail 'changelog' "${ChangelogFile}: line ${n}: the first section must be ## [Unreleased]" $ChangelogFile $n }
+                continue
+            }
+            $date = [datetime]::MinValue
+            if ($heading -match '^\[(\d+\.\d+\.\d+)\] - (\d{4}-\d\d-\d\d)$' -and
+                [datetime]::TryParseExact($Matches[2], 'yyyy-MM-dd', $null, 'None', [ref]$date)) {
+                $current = [pscustomobject]@{ Version = [version]$Matches[1]; Date = $date; Line = $n
+                                              Sections = [Collections.Generic.List[string]]::new() }
+                $releases.Add($current)
+            } else {
+                Fail 'changelog' "${ChangelogFile}: line ${n}: '## $heading' is not '## [X.Y.Z] - YYYY-MM-DD'" $ChangelogFile $n
+            }
+        } elseif ($line -match '^###\s+(.+?)\s*$') {
+            if ($Matches[1] -notin $ChangelogSections) {
+                Fail 'changelog' "${ChangelogFile}: line ${n}: '### $($Matches[1])' is not one of: $($ChangelogSections -join ', ')" $ChangelogFile $n
+            } elseif ($current) { $current.Sections.Add($Matches[1]) }
+        }
+    }
+    if (-not $headings) { Fail 'changelog' "$ChangelogFile has no ## [Unreleased] section" $ChangelogFile }
+    for ($i = 1; $i -lt $releases.Count; $i++) {
+        $newer = $releases[$i - 1]; $older = $releases[$i]
+        if ($older.Version -ge $newer.Version) {
+            Fail 'changelog' "${ChangelogFile}: line $($older.Line): versions must be in decreasing order ($($older.Version) after $($newer.Version))" $ChangelogFile $older.Line
+        }
+        if ($older.Date -gt $newer.Date) {
+            Fail 'changelog' "${ChangelogFile}: line $($older.Line): dates must not increase down the file" $ChangelogFile $older.Line
+        }
+        if ($newer.Version.Major -gt $older.Version.Major -and 'Upgrade' -notin $newer.Sections) {
+            Fail 'changelog' "${ChangelogFile}: line $($newer.Line): $($newer.Version) raises MAJOR and has no ### Upgrade section" $ChangelogFile $newer.Line
+        }
+    }
+    foreach ($name in @('Unreleased') + @($releases | ForEach-Object { "$($_.Version)" })) {
+        if ($changelog -notmatch "(?m)^\[$([regex]::Escape($name))\]:\s*https://") {
+            Fail 'changelog' "${ChangelogFile}: no link reference for [$name]" $ChangelogFile
+        }
+    }
+}
+
 # --- Result ---------------------------------------------------------------------------------
 if ($Failures.Count) {
     $Failures | ForEach-Object { Write-Host $_ -ForegroundColor Red }
     Write-Host "RED: $($Failures.Count) problem(s)." -ForegroundColor Red
     exit 1
 }
-Write-Host ("GREEN: {0} parameters, {1} messages, {2} troubleshooting fragments, {3} Markdown files checked." -f
-    $ast.ParamBlock.Parameters.Count, $messages.Count, @($fragments).Count, @($mdFiles).Count) -ForegroundColor Green
+Write-Host ("GREEN: {0} parameters, {1} messages, {2} troubleshooting fragments, {3} Markdown files, {4} releases checked." -f
+    $ast.ParamBlock.Parameters.Count, $messages.Count, @($fragments).Count, @($mdFiles).Count, $releases.Count) -ForegroundColor Green
 exit 0

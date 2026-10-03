@@ -13,3 +13,12 @@ updates:
     groups:
       actions:
         patterns: ['*']
+  # The Python tools of the harness (harness/requirements.txt), with the same delay.
+  - package-ecosystem: pip
+    directory: /harness
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 30
+    commit-message:
+      prefix: build

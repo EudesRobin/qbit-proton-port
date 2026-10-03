@@ -1,0 +1,3 @@
+# Python tools of the harness, installed by CI and by contributors (docs/CONTRIBUTING.md, Setup).
+# Dependabot proposes updates of these pins.
+zizmor==1.30.0

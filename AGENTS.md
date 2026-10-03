@@ -35,7 +35,7 @@ No row fits the task, or two documents disagree: say so to the user before actin
 | `.gitattributes` | Keeps the git hooks in LF, as `sh` requires |
 | `.github/workflows/validate.yml` | CI workflow, job `validate` (the check required on `main`): runs `Invoke-Harness.ps1` on Windows for every push to `main`, every pull request and on demand |
 | `.github/workflows/release.yml` | Publishes the GitHub Release of a pushed version tag, or on demand, with its changelog section as notes |
-| `.github/dependabot.yml` | Weekly pull request updating the pinned GitHub Actions, for releases at least 30 days old |
+| `.github/dependabot.yml` | Weekly pull requests updating the pinned GitHub Actions and the Python tools of `harness/requirements.txt`, for releases at least 30 days old |
 | `.idea/` | Shared IDE settings. `workspace.xml` and `misc.xml` (local JDK) are ignored |
 
 Runtime files live **outside the repository**, in `%LOCALAPPDATA%\qbit-proton-port\` (the `QBIT_PROTON_PORT_HOME` environment variable overrides it): `.env`, `secret.xml` (API key, DPAPI-encrypted) and `logs\sync.log`. `-ShowConfig` prints the actual paths. Never move them back into the repository; `.gitignore` still lists them as a safety net.

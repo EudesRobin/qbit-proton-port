@@ -89,14 +89,17 @@ function Case {
     param([string] $Name, [string] $Check, [ValidateSet('real', 'copy', 'empty')] [string] $Target,
           [scriptblock] $Alter, [int] $Exit, [string] $Expect,
           [string[]] $Arguments = @('-Root', '{root}'), [hashtable] $Data = @{},
-          [hashtable] $Env = @{}, [string] $Absent)
-    # Absent: a text the output must not contain.
+          [hashtable] $Env = @{}, [string] $Absent, [string] $Requires)
+    # Absent: a text the output must not contain. Requires: a command the check needs; the case is skipped
+    # without it, the check itself then reporting exit 2 through Invoke-Harness.
     [pscustomobject]@{ Name = $Name; Check = $Check; Target = $Target; Alter = $Alter; Exit = $Exit
-                       Expect = $Expect; Arguments = $Arguments; Data = $Data; Env = $Env; Absent = $Absent }
+                       Expect = $Expect; Arguments = $Arguments; Data = $Data; Env = $Env; Absent = $Absent
+                       Requires = $Requires }
 }
 
 $Script = 'Sync-QbitProtonPort.ps1'
 $C = 'Test-Consistency.ps1'
+$W = 'Test-Workflows.ps1'
 $S = 'Test-Secrets.ps1'
 $M = 'Test-CommitMessage.ps1'
 $MsgArgs = @('-Path', '{root}/MSG')
@@ -139,6 +142,12 @@ $Cases = @(
     Case 'consistency: changelog subsections out of order' $C copy (Edit-Text 'CHANGELOG.md' '### 🚀 Added' "### 🐛 Fixed`n`n- x`n`n### 🚀 Added") 1 "'### 🚀 Added' must come before '### 🐛 Fixed'"
     Case 'consistency: changelog subsection twice' $C copy (Edit-Text 'CHANGELOG.md' '### 🚀 Added' "### 🚀 Added`n`n- x`n`n### 🚀 Added") 1 "'### 🚀 Added' must come before '### 🚀 Added'"
 
+    # --- Test-Workflows.ps1 (zizmor)
+    Case 'workflows: real repository' $W real $null 0 'GREEN' -Requires 'zizmor'
+    Case 'workflows: checkout keeps the token' $W copy (Edit-Text '.github/workflows/validate.yml' 'persist-credentials: false' '') 1 '[artipacked] .github/workflows/validate.yml:' -Requires 'zizmor'
+    Case 'workflows: expression expanded in a script' $W copy (Edit-Text '.github/workflows/validate.yml' 'run: .\harness\Invoke-Harness.ps1 -CommitRange $env:COMMIT_RANGE' 'run: .\harness\Invoke-Harness.ps1 -CommitRange ${{ github.head_ref }}') 1 '[template-injection]' -Requires 'zizmor'
+    Case 'workflows: annotation in CI' $W copy (Edit-Text '.github/workflows/validate.yml' 'persist-credentials: false' '') 1 '::error file=.github/workflows/validate.yml,line=' -Env @{ GITHUB_ACTIONS = 'true' } -Requires 'zizmor'
+
     # --- Test-Secrets.ps1
     Case 'secrets: real repository' $S real $null 0 'GREEN'
     Case 'secrets: settings file' $S copy (Add-Text '.env' 'QBIT_API_PORT=1') 1 '[files] .env'
@@ -176,10 +185,16 @@ $Cases = @(
 )
 
 $failed = 0
+$skipped = 0
 $CiVariables = 'GITHUB_ACTIONS', 'GITHUB_STEP_SUMMARY'
 $saved = @{}
 foreach ($name in @('QBIT_PROTON_PORT_HOME') + $CiVariables) { $saved[$name] = [Environment]::GetEnvironmentVariable($name) }
 foreach ($c in $Cases) {
+    if ($c.Requires -and -not (Get-Command $c.Requires -ErrorAction SilentlyContinue)) {
+        Write-Host "skip  $($c.Name) : $($c.Requires) not found" -ForegroundColor Yellow
+        $skipped++
+        continue
+    }
     $work = Join-Path ([IO.Path]::GetTempPath()) "qbit-harness-$([Guid]::NewGuid().ToString('N').Substring(0, 8))"
     $target = if ($c.Target -eq 'real') { $Root } else { Join-Path $work 'target' }
     $dataDir = Join-Path $work 'data'
@@ -209,5 +224,5 @@ foreach ($c in $Cases) {
 }
 
 if ($failed) { Write-Host "RED: $failed of $($Cases.Count) case(s) failed." -ForegroundColor Red; exit 1 }
-Write-Host "GREEN: $($Cases.Count) cases." -ForegroundColor Green
+Write-Host "GREEN: $($Cases.Count - $skipped) cases$(if ($skipped) { ", $skipped skipped" })." -ForegroundColor Green
 exit 0

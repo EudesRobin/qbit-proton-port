@@ -10,6 +10,14 @@ The git hooks apply only once enabled in the clone. Before the first commit, che
 git config core.hooksPath .githooks
 ```
 
+Some checks need tools that don't ship with Windows. Install them once, at the versions CI uses:
+
+```powershell
+python -m pip install -r harness/requirements.txt   # zizmor, audit of the workflows
+```
+
+A missing tool makes its check exit 2 ("could not run"): the pre-commit hook lets the commit through with a warning, but CI installs every tool and stays strict.
+
 ## Commits
 
 - Commit messages are in French, 50 words at most. Start with one of these prefixes: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `build`, `revert`. The subject has no final period.
@@ -36,6 +44,8 @@ Actions are pinned to a commit SHA, with the version in a comment (`uses: owner/
 The protection of `main` requires one check, the `validate` job of the [CI workflow](../.github/workflows/validate.yml). Every check runs in that job, through `Invoke-Harness.ps1`, so a new check is required as soon as it is added to the harness. Don't rename the job. A separate job is not required by the protection: add one only behind an aggregating job named `validate`, which `needs` it and fails unless every job it needs succeeded.
 
 A value from the event (branch name, title, SHA) reaches a `run:` script through `env:`, never as `${{ }}` inside the script: expanded there, it would be code.
+
+`Test-Workflows.ps1` audits the workflows with [zizmor](https://docs.zizmor.sh/), and every finding is red. A finding accepted on purpose is ignored on its line with `# zizmor: ignore[<audit>]`, followed by the reason. The version of zizmor is pinned in [`harness/requirements.txt`](../harness/requirements.txt), which Dependabot updates like the actions.
 
 ## Documentation
 

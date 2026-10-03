@@ -31,7 +31,7 @@ No row fits the task, or two documents disagree: say so to the user before actin
 | `harness/` | Offline checks, all run by `Invoke-Harness.ps1`: see [docs/HARNESS.md](docs/HARNESS.md) |
 | `.githooks/` | `pre-commit` (Invoke-Harness, then `Test-Secrets -Staged`) and `commit-msg` (Test-CommitMessage) |
 | `.gitattributes` | Keeps the git hooks in LF, as `sh` requires |
-| `.github/workflows/validate.yml` | CI: runs `Invoke-Harness.ps1` on Windows for every push to `main` and every pull request |
+| `.github/workflows/validate.yml` | CI workflow, job `validate` (the check required on `main`): runs `Invoke-Harness.ps1` on Windows for every push to `main`, every pull request and on demand |
 | `.github/dependabot.yml` | Weekly pull request updating the pinned GitHub Actions, for releases at least 30 days old |
 | `.idea/` | Shared IDE settings. `workspace.xml` and `misc.xml` (local JDK) are ignored |
 

@@ -13,6 +13,7 @@ The changes of each release, sorted by category: 💥 upgrade steps, 🚀 new fe
 - CI: one log group per check with its duration, a table of results in the job summary, and each problem annotated on its file and line in the pull request.
 - CI checks the commit messages of each pull request and of each push to `main`.
 - Each version tag is published as a GitHub Release, with its section of this changelog as notes.
+- CI audits the workflows with zizmor, at a version pinned in `harness/requirements.txt` and updated by Dependabot.
 
 ## [1.0.0] - 2026-09-27
 

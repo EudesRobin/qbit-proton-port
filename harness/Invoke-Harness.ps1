@@ -22,6 +22,7 @@ Set-StrictMode -Version Latest
 $Checks = @(
     ,@('Test-Consistency.ps1')
     ,@('Test-Secrets.ps1')
+    ,@('Test-Workflows.ps1')
     if ($CommitRange) { ,@('Test-CommitMessage.ps1', '-Range', $CommitRange) }
     ,@('Test-Harness.ps1')
 )

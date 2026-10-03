@@ -1,0 +1,50 @@
+# Publishes the GitHub Release of a version tag (docs/CONTRIBUTING.md, Releases), with the version's
+# section of CHANGELOG.md as its notes. Runs when a tag X.Y.Z is pushed, or on demand for an existing tag.
+name: Release
+
+on:
+  push:
+    tags: ['[0-9]+.[0-9]+.[0-9]+']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to publish, such as 1.0.0
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write  # create the release, nothing else
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      # Passed through the environment, never expanded in a script.
+      TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+    steps:
+      - name: Check the tag name
+        run: if ($env:TAG -notmatch '^\d+\.\d+\.\d+$') { throw "'$env:TAG' is not a version tag X.Y.Z." }
+      # Actions are pinned to a commit SHA: a tag can be moved to other code.
+      # The ref that triggered the run: the tag when pushed, the chosen branch (main) on demand, so that a
+      # release older than CHANGELOG.md can still be published. --verify-tag below requires the tag to exist.
+      - name: Check out the triggering ref
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false  # gh gets the token through GH_TOKEN only
+      - name: Extract the release notes from CHANGELOG.md
+        run: |
+          $changelog = Get-Content CHANGELOG.md -Raw -Encoding utf8
+          # From the version's heading to the next heading or to the link references.
+          $pattern = '(?ms)^## \[' + [regex]::Escape($env:TAG) + '\][^\n]*\n(.*?)(?=^## \[|^\[[^\]]+\]:|\z)'
+          $notes = [regex]::Match($changelog, $pattern).Groups[1].Value.Trim()
+          if (-not $notes) { throw "CHANGELOG.md has no section for $env:TAG, or it is empty." }
+          Set-Content -Path (Join-Path $env:RUNNER_TEMP 'notes.md') -Value $notes -Encoding utf8NoBOM
+      - name: Publish the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create $env:TAG --repo $env:GITHUB_REPOSITORY --verify-tag --title $env:TAG --notes-file (Join-Path $env:RUNNER_TEMP 'notes.md')

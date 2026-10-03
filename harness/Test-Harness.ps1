@@ -21,6 +21,8 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 $Root = Split-Path $PSScriptRoot -Parent
+# The checks write UTF-8 (GitHubActions.ps1): read their output as such.
+try { [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false) } catch { }
 
 function Copy-Repository([string] $Destination) {
     foreach ($rel in git -C $Root ls-files --cached --others --exclude-standard) {
@@ -61,6 +63,9 @@ function Stage([scriptblock] $Then) {
     }.GetNewClosure()
 }
 function Message([string] $Text) { Add-Text 'MSG' $Text }
+function Remove-File([string] $Rel) { { param($d) Remove-Item (Join-Path $d $Rel) }.GetNewClosure() }
+# Several alterations, in order.
+function Steps([scriptblock[]] $Alterations) { { param($d) foreach ($a in $Alterations) { & $a $d } }.GetNewClosure() }
 # Makes the folder a git repository: a commit tagged base, then one commit per message, then a merge
 # commit with a message breaking every rule when -Merge is set.
 function Commits([string[]] $Messages, [switch] $Merge) {
@@ -122,6 +127,17 @@ $Cases = @(
     Case 'consistency: text after a closing fence' $C copy (Add-Text 'README.md' "`n$($Fence)text`nx`n$Fence See the rest.") 1 '[fences]'
     Case 'consistency: annotation in CI' $C copy (Add-Text 'docs/HARNESS.md' "`n[x](./absent.md)") 1 '::error file=docs/HARNESS.md,line=' -Env @{ GITHUB_ACTIONS = 'true' }
     Case 'consistency: no annotation outside CI' $C copy (Add-Text 'docs/HARNESS.md' "`n[x](./absent.md)") 1 '[links]' -Absent '::error'
+    Case 'consistency: changelog missing' $C copy (Remove-File 'CHANGELOG.md') 1 '[changelog] CHANGELOG.md is missing'
+    Case 'consistency: changelog without Unreleased first' $C copy (Edit-Text 'CHANGELOG.md' '## [Unreleased]' '## [Next]') 1 'the first section must be ## [Unreleased]'
+    Case 'consistency: changelog heading without date' $C copy (Edit-Text 'CHANGELOG.md' '## [1.0.0] - 2026-09-27' '## [1.0.0]') 1 "'## [1.0.0]' is not"
+    Case 'consistency: changelog unknown subsection' $C copy (Edit-Text 'CHANGELOG.md' '### 🚀 Added' '### Added') 1 "'### Added' is not one of"
+    Case 'consistency: changelog link reference missing' $C copy (Edit-Text 'CHANGELOG.md' '[1.0.0]: https' '[1.0]: https') 1 'no link reference for [1.0.0]'
+    Case 'consistency: changelog versions not decreasing' $C copy (Steps (Edit-Text 'CHANGELOG.md' '## [1.0.0]' "## [0.9.0] - 2026-09-27`n`n### 🐛 Fixed`n`n- x`n`n## [1.0.0]"), (Add-Text 'CHANGELOG.md' '[0.9.0]: https://example.com')) 1 'decreasing order (1.0.0 after 0.9.0)'
+    Case 'consistency: changelog dates increasing' $C copy (Steps (Edit-Text 'CHANGELOG.md' '## [1.0.0]' "## [1.0.1] - 2026-09-01`n`n### 🐛 Fixed`n`n- x`n`n## [1.0.0]"), (Add-Text 'CHANGELOG.md' '[1.0.1]: https://example.com')) 1 'dates must not increase'
+    Case 'consistency: changelog major without Upgrade' $C copy (Steps (Edit-Text 'CHANGELOG.md' '## [1.0.0]' "## [2.0.0] - 2026-10-01`n`n### 🔥 Removed`n`n- x`n`n## [1.0.0]"), (Add-Text 'CHANGELOG.md' '[2.0.0]: https://example.com')) 1 '2.0.0 raises MAJOR and has no ### 💥 Upgrade'
+    Case 'consistency: changelog major with Upgrade' $C copy (Steps (Edit-Text 'CHANGELOG.md' '## [1.0.0]' "## [2.0.0] - 2026-10-01`n`n### 💥 Upgrade`n`n- x`n`n### 🔥 Removed`n`n- x`n`n## [1.0.0]"), (Add-Text 'CHANGELOG.md' '[2.0.0]: https://example.com')) 0 'GREEN'
+    Case 'consistency: changelog subsections out of order' $C copy (Edit-Text 'CHANGELOG.md' '### 🚀 Added' "### 🐛 Fixed`n`n- x`n`n### 🚀 Added") 1 "'### 🚀 Added' must come before '### 🐛 Fixed'"
+    Case 'consistency: changelog subsection twice' $C copy (Edit-Text 'CHANGELOG.md' '### 🚀 Added' "### 🚀 Added`n`n- x`n`n### 🚀 Added") 1 "'### 🚀 Added' must come before '### 🚀 Added'"
 
     # --- Test-Secrets.ps1
     Case 'secrets: real repository' $S real $null 0 'GREEN'

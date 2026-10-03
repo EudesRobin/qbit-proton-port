@@ -14,6 +14,7 @@ The security rules and the verification loop below apply to every task. Before a
 | Add or change a harness check or a README troubleshooting row, test a failure case, or commit | [Harness](docs/HARNESS.md) |
 | Write or edit documentation | [Contributing: documentation](docs/CONTRIBUTING.md#documentation) |
 | Commit, open or merge a pull request, touch a GitHub Action or a Dependabot pull request | [Contributing](docs/CONTRIBUTING.md) |
+| Decide whether a change needs a changelog entry, or write one | [Contributing: changelog](docs/CONTRIBUTING.md#changelog) |
 | Publish a release | [Contributing: releases](docs/CONTRIBUTING.md#releases) |
 | Answer a question about setup, usage or troubleshooting | [README.md](./README.md) |
 
@@ -26,12 +27,14 @@ No row fits the task, or two documents disagree: say so to the user before actin
 | `Sync-QbitProtonPort.ps1` | The whole tool: Proton VPN port detection, `.ini` edit, WebUI API over pinned HTTPS, certificate and scheduled-task management |
 | `.env.example` | Settings template, copied to `%LOCALAPPDATA%\qbit-proton-port\.env` |
 | `README.md` | User documentation. Its tables must match the script's parameters and error messages |
+| `CHANGELOG.md` | User-visible changes per release, as described in [Contributing: changelog](docs/CONTRIBUTING.md#changelog) |
 | `LICENSE` | MIT |
 | `docs/` | Instructions read on demand, routed by [Where to look](#where-to-look) |
 | `harness/` | Offline checks, all run by `Invoke-Harness.ps1`: see [docs/HARNESS.md](docs/HARNESS.md) |
 | `.githooks/` | `pre-commit` (Invoke-Harness, then `Test-Secrets -Staged`) and `commit-msg` (Test-CommitMessage) |
 | `.gitattributes` | Keeps the git hooks in LF, as `sh` requires |
 | `.github/workflows/validate.yml` | CI workflow, job `validate` (the check required on `main`): runs `Invoke-Harness.ps1` on Windows for every push to `main`, every pull request and on demand |
+| `.github/workflows/release.yml` | Publishes the GitHub Release of a pushed version tag, or on demand, with its changelog section as notes |
 | `.github/dependabot.yml` | Weekly pull request updating the pinned GitHub Actions, for releases at least 30 days old |
 | `.idea/` | Shared IDE settings. `workspace.xml` and `misc.xml` (local JDK) are ignored |
 
@@ -63,6 +66,7 @@ After **each** edit, before building anything on top of it, proposing a commit, 
 1. Run `.\harness\Invoke-Harness.ps1`.
 2. `Sync-QbitProtonPort.ps1` changed: run it for real (**Run** above), and read the output and exit code.
 3. A behaviour, parameter, setting, message or file location changed: update the README in the same commit (usage, settings, troubleshooting, how it works, security), and this file or `docs/` when the layout, an external contract or a security rule changed. Reread the sections the diff touches, fix any statement that became wrong, and document any new behaviour that is missing: `Test-Consistency.ps1` covers only the mechanical part.
-4. Red, or a statement became wrong → read the cause, fix, and start again at 1.
+4. Every change, whatever its kind: add its entry under `[Unreleased]` in `CHANGELOG.md`, in the [category](docs/CONTRIBUTING.md#changelog) that fits.
+5. Red, or a statement became wrong → read the cause, fix, and start again at 1.
 
 **At most 3 attempts.** If the loop is still red after the third fix, stop editing. Reply with a concise report giving, for each attempt, the change made and the resulting error. Then ask the user what to do next. Never weaken or skip a check to turn it green.

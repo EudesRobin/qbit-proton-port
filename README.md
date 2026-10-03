@@ -134,6 +134,10 @@ INFO  qBittorrent updated: port 51413 on 'ProtonVPN'.
 
 Each run is logged to `%LOCALAPPDATA%\qbit-proton-port\logs\sync.log`. Past 1 MB, the log is renamed `sync.log.1` and a new one starts. Exit code 0 means success (synced, nothing to do, or command done); 1 means an error, and qBittorrent is not started.
 
+## Updating
+
+Every release is listed in [CHANGELOG.md](CHANGELOG.md) and on the repository's Releases page. Before updating to a new major version (`2.0.0`, `3.0.0`...), read its **💥 Upgrade** section: your setup needs a change. Then update your copy with `git pull`, or download the new ZIP and unblock it as in [step 1](#1-get-the-script).
+
 ## Troubleshooting
 
 Messages are quoted by their fixed part; `...` stands for a variable part such as a path or a number.

@@ -24,7 +24,7 @@ The [commit-msg hook](../.githooks/commit-msg) checks all of this except the lan
 
 ## Pull requests
 
-- `main` is protected: every change goes through a branch and a pull request, merged once the `validate` check is green.
+- `main` is protected: every change goes through a branch and a pull request, merged once the `validate` check is green on a branch up to date with `main`. A branch behind `main` is updated first (*Update branch* on the pull request), which runs CI again on the result.
 - Dependabot's commit messages are in English and carry the release notes: squash-merge its pull requests, with a message that follows the [commit rules](#commits).
 
 No hook checks a pull request description, and a squash message written on GitHub is only checked once on `main`, by CI: apply the commit rules by hand.

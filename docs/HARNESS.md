@@ -10,6 +10,7 @@ Routed from [AGENTS.md](../AGENTS.md#where-to-look), which holds the [verificati
 | [`harness/Test-Consistency.ps1`](../harness/Test-Consistency.ps1) | Script, `.env.example` and Markdown files agree |
 | [`harness/Test-Secrets.ps1`](../harness/Test-Secrets.ps1) | No runtime file, key, fingerprint, user path, IP or local `.env` value in what would be published; `-Staged` for the staged diff |
 | [`harness/Test-Workflows.ps1`](../harness/Test-Workflows.ps1) | The GitHub Actions workflows pass the zizmor audit (see [Contributing](CONTRIBUTING.md#github-actions)) |
+| [`harness/Test-Unit.ps1`](../harness/Test-Unit.ps1) | Pester tests of the script's functions, in [`tests/`](../tests/Sync-QbitProtonPort.Tests.ps1): Proton VPN log, `qBittorrent.ini`, `.env` |
 | [`harness/requirements.txt`](../harness/requirements.txt) | Not a check: the pinned Python tools of the checks, installed by CI |
 | [`harness/Test-CommitMessage.ps1`](../harness/Test-CommitMessage.ps1) | Commit message rules (see [Contributing](CONTRIBUTING.md#commits)): one message for the hook, or the commits of a range with `Invoke-Harness.ps1 -CommitRange` |
 | [`harness/Test-Harness.ps1`](../harness/Test-Harness.ps1) | Tests of the checks: each rule seen red on a broken case |
@@ -21,7 +22,9 @@ Each check lists its rules in its own header, which is the reference: update the
 
 A troubleshooting row of the README quotes the fixed part of a message in backticks, with `...` for a variable part. A message whose fixed part is too short (under 10 characters) can't be matched: reword it so it starts with a meaningful fixed phrase.
 
-`Test-Harness.ps1` runs each check against a temporary copy of the repository broken on purpose, and expects it red with a given message; it also expects the real repository green. A rule added to a check isn't done until its broken case is in `Test-Harness.ps1` and was seen failing against the check without the rule. A case whose check needs a missing tool (such as zizmor) is skipped and counted as such; the check itself then exits 2 in `Invoke-Harness.ps1`.
+`Test-Harness.ps1` runs each check against a temporary copy of the repository broken on purpose, and expects it red with a given message; it also expects the real repository green. A rule added to a check isn't done until its broken case is in `Test-Harness.ps1` and was seen failing against the check without the rule. A change to a function covered by [`tests/`](../tests/Sync-QbitProtonPort.Tests.ps1) updates its tests in the same commit, and a new behaviour of such a function gets a test seen failing first. Each test points every path into Pester's `TestDrive` and mocks `Write-Log`: a test never touches the user's real files.
+
+A case whose check needs a missing tool (such as zizmor) is skipped and counted as such; the check itself then exits 2 in `Invoke-Harness.ps1`.
 
 ## In CI
 

@@ -89,9 +89,9 @@ function Case {
     param([string] $Name, [string] $Check, [ValidateSet('real', 'copy', 'empty')] [string] $Target,
           [scriptblock] $Alter, [int] $Exit, [string] $Expect,
           [string[]] $Arguments = @('-Root', '{root}'), [hashtable] $Data = @{},
-          [hashtable] $Env = @{}, [string] $Absent, [string] $Requires)
-    # Absent: a text the output must not contain. Requires: a command the check needs; the case is skipped
-    # without it, the check itself then reporting exit 2 through Invoke-Harness.
+          [hashtable] $Env = @{}, [string] $Absent, [scriptblock] $Requires)
+    # Absent: a text the output must not contain. Requires: true when the tool the check needs is installed;
+    # the case is skipped without it, the check itself then reporting exit 2 through Invoke-Harness.
     [pscustomobject]@{ Name = $Name; Check = $Check; Target = $Target; Alter = $Alter; Exit = $Exit
                        Expect = $Expect; Arguments = $Arguments; Data = $Data; Env = $Env; Absent = $Absent
                        Requires = $Requires }
@@ -100,6 +100,9 @@ function Case {
 $Script = 'Sync-QbitProtonPort.ps1'
 $C = 'Test-Consistency.ps1'
 $W = 'Test-Workflows.ps1'
+$U = 'Test-Unit.ps1'
+$HasZizmor = { Get-Command zizmor -ErrorAction SilentlyContinue }
+$HasPester = { Get-Module -ListAvailable Pester | Where-Object { $_.Version.Major -eq 6 } }
 $S = 'Test-Secrets.ps1'
 $M = 'Test-CommitMessage.ps1'
 $MsgArgs = @('-Path', '{root}/MSG')
@@ -143,10 +146,17 @@ $Cases = @(
     Case 'consistency: changelog subsection twice' $C copy (Edit-Text 'CHANGELOG.md' '### 🚀 Added' "### 🚀 Added`n`n- x`n`n### 🚀 Added") 1 "'### 🚀 Added' must come before '### 🚀 Added'"
 
     # --- Test-Workflows.ps1 (zizmor)
-    Case 'workflows: real repository' $W real $null 0 'GREEN' -Requires 'zizmor'
-    Case 'workflows: checkout keeps the token' $W copy (Edit-Text '.github/workflows/validate.yml' 'persist-credentials: false' '') 1 '[artipacked] .github/workflows/validate.yml:' -Requires 'zizmor'
-    Case 'workflows: expression expanded in a script' $W copy (Edit-Text '.github/workflows/validate.yml' 'run: .\harness\Invoke-Harness.ps1 -CommitRange $env:COMMIT_RANGE' 'run: .\harness\Invoke-Harness.ps1 -CommitRange ${{ github.head_ref }}') 1 '[template-injection]' -Requires 'zizmor'
-    Case 'workflows: annotation in CI' $W copy (Edit-Text '.github/workflows/validate.yml' 'persist-credentials: false' '') 1 '::error file=.github/workflows/validate.yml,line=' -Env @{ GITHUB_ACTIONS = 'true' } -Requires 'zizmor'
+    Case 'workflows: real repository' $W real $null 0 'GREEN' -Requires $HasZizmor
+    Case 'workflows: checkout keeps the token' $W copy (Edit-Text '.github/workflows/validate.yml' 'persist-credentials: false' '') 1 '[artipacked] .github/workflows/validate.yml:' -Requires $HasZizmor
+    Case 'workflows: expression expanded in a script' $W copy (Edit-Text '.github/workflows/validate.yml' 'run: .\harness\Invoke-Harness.ps1 -CommitRange $env:COMMIT_RANGE' 'run: .\harness\Invoke-Harness.ps1 -CommitRange ${{ github.head_ref }}') 1 '[template-injection]' -Requires $HasZizmor
+    Case 'workflows: annotation in CI' $W copy (Edit-Text '.github/workflows/validate.yml' 'persist-credentials: false' '') 1 '::error file=.github/workflows/validate.yml,line=' -Env @{ GITHUB_ACTIONS = 'true' } -Requires $HasZizmor
+
+    # --- Test-Unit.ps1 (Pester)
+    Case 'unit: real repository' $U real $null 0 'GREEN' -Requires $HasPester
+    Case 'unit: port added in the wrong section' $U copy (Edit-Text $Script '$lines.Insert($sectionEnd + 1, "Session\Port=$Port")' '$lines.Add("Session\Port=$Port")') 1 'RED: 1 test(s) failed' -Requires $HasPester
+    Case 'unit: stale port accepted' $U copy (Edit-Text $Script 'if ($age -gt $MaxPortAge) {' 'if ($false) {') 1 'RED: 1 test(s) failed' -Requires $HasPester
+    Case 'unit: main block run when dot-sourced' $U copy (Edit-Text $Script "if (`$MyInvocation.InvocationName -eq '.') { return }" '') 1 'RED: 1 test(s) failed' -Requires $HasPester
+    Case 'unit: annotation in CI' $U copy (Edit-Text $Script 'if ($age -gt $MaxPortAge) {' 'if ($false) {') 1 '::error file=tests/Sync-QbitProtonPort.Tests.ps1,line=' -Env @{ GITHUB_ACTIONS = 'true' } -Requires $HasPester
 
     # --- Test-Secrets.ps1
     Case 'secrets: real repository' $S real $null 0 'GREEN'
@@ -190,8 +200,8 @@ $CiVariables = 'GITHUB_ACTIONS', 'GITHUB_STEP_SUMMARY'
 $saved = @{}
 foreach ($name in @('QBIT_PROTON_PORT_HOME') + $CiVariables) { $saved[$name] = [Environment]::GetEnvironmentVariable($name) }
 foreach ($c in $Cases) {
-    if ($c.Requires -and -not (Get-Command $c.Requires -ErrorAction SilentlyContinue)) {
-        Write-Host "skip  $($c.Name) : $($c.Requires) not found" -ForegroundColor Yellow
+    if ($c.Requires -and -not (& $c.Requires)) {
+        Write-Host "skip  $($c.Name) : needs {$($c.Requires.ToString().Trim())}" -ForegroundColor Yellow
         $skipped++
         continue
     }

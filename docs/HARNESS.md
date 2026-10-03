@@ -9,7 +9,7 @@ Routed from [AGENTS.md](../AGENTS.md#where-to-look), which holds the [verificati
 | [`harness/Invoke-Harness.ps1`](../harness/Invoke-Harness.ps1) | Runs every offline check: the **Test** step of the Definition of Done |
 | [`harness/Test-Consistency.ps1`](../harness/Test-Consistency.ps1) | Script, `.env.example` and Markdown files agree |
 | [`harness/Test-Secrets.ps1`](../harness/Test-Secrets.ps1) | No runtime file, key, fingerprint, user path, IP or local `.env` value in what would be published; `-Staged` for the staged diff |
-| [`harness/Test-CommitMessage.ps1`](../harness/Test-CommitMessage.ps1) | Commit message rules (see [Contributing](CONTRIBUTING.md#commits)) |
+| [`harness/Test-CommitMessage.ps1`](../harness/Test-CommitMessage.ps1) | Commit message rules (see [Contributing](CONTRIBUTING.md#commits)): one message for the hook, or the commits of a range with `Invoke-Harness.ps1 -CommitRange` |
 | [`harness/Test-Harness.ps1`](../harness/Test-Harness.ps1) | Tests of the checks: each rule seen red on a broken case |
 | [`harness/GitHubActions.ps1`](../harness/GitHubActions.ps1) | Not a check: annotations, log groups and job summary on GitHub Actions, dot-sourced by the checks |
 
@@ -23,7 +23,7 @@ A troubleshooting row of the README quotes the fixed part of a message in backti
 
 ## In CI
 
-The [`CI` workflow](../.github/workflows/validate.yml) runs `Invoke-Harness.ps1`. There, each check is a collapsible group of the log, with its exit code and duration; the job summary on the page of the run has a table of the results; and each problem found by `Test-Consistency.ps1` or `Test-Secrets.ps1` is an error annotation on its file, and on its line when known, shown in the pull request. Outside GitHub Actions the output is unchanged, apart from the durations.
+The [`CI` workflow](../.github/workflows/validate.yml) runs `Invoke-Harness.ps1`. There, each check is a collapsible group of the log, with its exit code and duration; the job summary on the page of the run has a table of the results; and each problem found by `Test-Consistency.ps1` or `Test-Secrets.ps1` is an error annotation on its file, and on its line when known, shown in the pull request. CI also passes `-CommitRange`: the commits of the pull request, or those pushed to `main`, each badly written message being an annotation naming the commit. Outside GitHub Actions the output is unchanged, apart from the durations.
 
 An annotation is public on a public repository: like the console messages, it never contains a matched value.
 

@@ -61,6 +61,24 @@ function Stage([scriptblock] $Then) {
     }.GetNewClosure()
 }
 function Message([string] $Text) { Add-Text 'MSG' $Text }
+# Makes the folder a git repository: a commit tagged base, then one commit per message, then a merge
+# commit with a message breaking every rule when -Merge is set.
+function Commits([string[]] $Messages, [switch] $Merge) {
+    {
+        param($d)
+        $git = @('-C', $d, '-c', 'user.name=Test', '-c', 'user.email=test@example.com', '-c', 'commit.gpgsign=false')
+        git -C $d init -q -b main
+        git @git commit -q --allow-empty -m 'chore: base'
+        git -C $d tag base
+        foreach ($m in $Messages) { git @git commit -q --allow-empty -m $m }
+        if ($Merge) {
+            git -C $d switch -q -c side base
+            git @git commit -q --allow-empty -m 'test: side'
+            git -C $d switch -q main
+            git @git merge -q --no-ff side -m 'bad merge message.'
+        }
+    }.GetNewClosure()
+}
 
 function Case {
     param([string] $Name, [string] $Check, [ValidateSet('real', 'copy', 'empty')] [string] $Target,
@@ -77,6 +95,7 @@ $C = 'Test-Consistency.ps1'
 $S = 'Test-Secrets.ps1'
 $M = 'Test-CommitMessage.ps1'
 $MsgArgs = @('-Path', '{root}/MSG')
+$RangeArgs = @('-Range', 'base..HEAD', '-Root', '{root}')
 $Ip = '192.168.' + '1.20'
 $UserPath = 'C:\Us' + 'ers\alice\Downloads'
 $PemKey = '-----BEGIN RSA ' + 'PRIVATE KEY-----'
@@ -132,6 +151,12 @@ $Cases = @(
     Case 'commit: too many words' $M empty (Message "fix: x`n`n$('mot ' * 50)") 1 '52 words' $MsgArgs
     Case 'commit: Co-Authored-By an AI' $M empty (Message "fix: x`n`nCo-Authored-By: Claude <noreply@anthropic.com>") 1 'AI attribution' $MsgArgs
     Case 'commit: generated with an AI' $M empty (Message "fix: x`n`nGenerated with Claude Code") 1 'AI attribution' $MsgArgs
+    Case 'commit: path by position, as the hook passes it' $M empty (Message 'corrige la lecture du port') 1 'must start with' @('{root}/MSG')
+    Case 'commit range: valid commits' $M empty (Commits 'feat: ajoute un réglage', 'fix: corrige la lecture') 0 'GREEN: 2 commit(s)' $RangeArgs
+    Case 'commit range: bad message' $M empty (Commits 'feat: ajoute un réglage', 'corrige la lecture') 1 'must start with' $RangeArgs
+    Case 'commit range: merge commit not checked' $M empty (Commits 'feat: ajoute un réglage' -Merge) 0 'GREEN: 2 commit(s)' $RangeArgs
+    Case 'commit range: unknown range' $M empty (Commits 'feat: ajoute un réglage') 2 'Cannot read the commits' @('-Range', 'nowhere..HEAD', '-Root', '{root}')
+    Case 'commit range: annotation in CI' $M empty (Commits 'corrige la lecture') 1 '::error title=commit ' $RangeArgs -Env @{ GITHUB_ACTIONS = 'true' }
 )
 
 $failed = 0

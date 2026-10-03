@@ -30,6 +30,12 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
+          fetch-depth: 0  # the whole history: the commits of the range below must be readable
           persist-credentials: false  # nothing is pushed: don't leave the token in .git/config
-      - name: Run the offline harness (consistency, secrets, tests of the checks)
-        run: .\harness\Invoke-Harness.ps1
+      - name: Run the offline harness (consistency, secrets, commit messages, tests of the checks)
+        env:
+          # Commits whose messages are checked: those of the pull request, or those pushed to main (squash
+          # messages written on GitHub). Dependabot's pull requests are skipped: their messages are rewritten
+          # at squash, then checked on main. Passed through the environment, never expanded in the script.
+          COMMIT_RANGE: ${{ github.event_name == 'pull_request' && github.event.pull_request.user.login != 'dependabot[bot]' && format('{0}..{1}', github.event.pull_request.base.sha, github.event.pull_request.head.sha) || github.event_name == 'push' && format('{0}..{1}', github.event.before, github.event.after) || '' }}
+        run: .\harness\Invoke-Harness.ps1 -CommitRange $env:COMMIT_RANGE

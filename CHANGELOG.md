@@ -4,6 +4,8 @@ The changes of each release, sorted by category: 💥 upgrade steps, 🚀 new fe
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-03
+
 ### 📝 Documentation
 
 - Changelog, and the steps to publish a release.
@@ -28,5 +30,6 @@ The changes of each release, sorted by category: 💥 upgrade steps, 🚀 new fe
 - Background scheduled task every 5 minutes, under the user's account and without admin rights.
 - Commands `-SyncOnly`, `-PauseOnError`, `-RegisterTask`, `-UnregisterTask`, `-ShowConfig`, `-ResetCredential` and `-NewCertificate`.
 
-[Unreleased]: https://github.com/EudesRobin/qbit-proton-port/compare/1.0.0...HEAD
+[Unreleased]: https://github.com/EudesRobin/qbit-proton-port/compare/1.0.1...HEAD
+[1.0.1]: https://github.com/EudesRobin/qbit-proton-port/compare/1.0.0...1.0.1
 [1.0.0]: https://github.com/EudesRobin/qbit-proton-port/releases/tag/1.0.0

@@ -15,6 +15,7 @@
       7. Every anchor (#heading) of a link to a Markdown file matches a heading of that file.
       8. Every setting the script reads (Get-Setting) is in .env.example.
       9. Every Markdown table has at least one data row.
+     10. No text follows a closing code fence on its line: GitHub would keep the block open to the end of the file.
 
     Troubleshooting rows quote the static part of a message in backticks; "..." stands for a variable part.
     A message is matched when one of its static parts (10+ characters) and a quoted fragment contain each other.
@@ -182,6 +183,16 @@ $anchorCache = @{}
 foreach ($md in $mdFiles) {
     $text = Get-Content $md.FullName -Raw -Encoding utf8
     $prose = @(Get-ProseLines $text)
+
+    # --- 10. Closing fences carry no text ----------------------------------------------------------
+    $inFence = $false
+    $n = 0
+    foreach ($line in $text -split "`r?`n") {
+        $n++
+        if ($line -notmatch '^\s*(```|~~~)') { continue }
+        if ($inFence -and $line -match '^\s*(```|~~~)\s*\S') { Fail 'fences' "$($md.Name): line ${n}: text after a closing fence" }
+        $inFence = -not $inFence
+    }
 
     # --- 6. Relative links and 7. anchors ------------------------------------------------------
     $links = @([regex]::Matches($text, '\]\(([^)\s#]*)(#[^)\s]*)?\)')) +

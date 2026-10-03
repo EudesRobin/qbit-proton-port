@@ -76,6 +76,7 @@ $MsgArgs = @('-Path', '{root}/MSG')
 $Ip = '192.168.' + '1.20'
 $UserPath = 'C:\Us' + 'ers\alice\Downloads'
 $PemKey = '-----BEGIN RSA ' + 'PRIVATE KEY-----'
+$Fence = '```'
 
 $Cases = @(
     # --- Test-Consistency.ps1
@@ -91,9 +92,11 @@ $Cases = @(
     Case 'consistency: stale troubleshooting entry' $C copy (Edit-Text 'README.md' '`Proton VPN log reports an invalid port`' '`Proton VPN log reports a bogus port`') 1 '[stale]'
     Case 'consistency: dead inline link' $C copy (Add-Text 'README.md' "`n[x](./absent.md)") 1 '[links]'
     Case 'consistency: dead reference link' $C copy (Add-Text 'README.md' "`n[r]: ./absent.md") 1 '[links]'
+    Case 'consistency: dead link from a subfolder' $C copy (Add-Text 'docs/HARNESS.md' "`n[x](./AGENTS.md)") 1 '[links] HARNESS.md'
     Case 'consistency: dead anchor, same file' $C copy (Add-Text 'README.md' "`n[x](#nowhere)") 1 '[anchors]'
     Case 'consistency: dead anchor, other file' $C copy (Add-Text 'README.md' "`n[x](AGENTS.md#nowhere)") 1 '[anchors]'
     Case 'consistency: table without rows' $C copy (Add-Text 'AGENTS.md' "`n| A | B |`n|---|---|`nText") 1 '[tables]'
+    Case 'consistency: text after a closing fence' $C copy (Add-Text 'README.md' "`n$($Fence)text`nx`n$Fence See the rest.") 1 '[fences]'
 
     # --- Test-Secrets.ps1
     Case 'secrets: real repository' $S real $null 0 'GREEN'

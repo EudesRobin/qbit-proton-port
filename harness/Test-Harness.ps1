@@ -22,7 +22,7 @@ Set-StrictMode -Version Latest
 
 $Root = Split-Path $PSScriptRoot -Parent
 # The checks write UTF-8 (GitHubActions.ps1): read their output as such.
-try { [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false) } catch { }
+try { [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false) } catch { Write-Verbose "Output encoding unchanged: $_" }
 
 function Copy-Repository([string] $Destination) {
     foreach ($rel in git -C $Root ls-files --cached --others --exclude-standard) {
@@ -101,6 +101,8 @@ $Script = 'Sync-QbitProtonPort.ps1'
 $C = 'Test-Consistency.ps1'
 $W = 'Test-Workflows.ps1'
 $U = 'Test-Unit.ps1'
+$L = 'Test-Lint.ps1'
+$HasAnalyzer = { Get-Module -ListAvailable PSScriptAnalyzer }
 $HasZizmor = { Get-Command zizmor -ErrorAction SilentlyContinue }
 $HasPester = { Get-Module -ListAvailable Pester | Where-Object { $_.Version.Major -eq 6 } }
 $S = 'Test-Secrets.ps1'
@@ -150,6 +152,13 @@ $Cases = @(
     Case 'workflows: checkout keeps the token' $W copy (Edit-Text '.github/workflows/validate.yml' 'persist-credentials: false' '') 1 '[artipacked] .github/workflows/validate.yml:' -Requires $HasZizmor
     Case 'workflows: expression expanded in a script' $W copy (Edit-Text '.github/workflows/validate.yml' 'run: .\harness\Invoke-Harness.ps1 -CommitRange $env:COMMIT_RANGE' 'run: .\harness\Invoke-Harness.ps1 -CommitRange ${{ github.head_ref }}') 1 '[template-injection]' -Requires $HasZizmor
     Case 'workflows: annotation in CI' $W copy (Edit-Text '.github/workflows/validate.yml' 'persist-credentials: false' '') 1 '::error file=.github/workflows/validate.yml,line=' -Env @{ GITHUB_ACTIONS = 'true' } -Requires $HasZizmor
+
+    # --- Test-Lint.ps1 (PSScriptAnalyzer)
+    Case 'lint: real repository' $L real $null 0 'GREEN' -Requires $HasAnalyzer
+    Case 'lint: Invoke-Expression' $L copy (Add-Text $Script "`nInvoke-Expression `$env:QBIT_PATH") 1 '[PSAvoidUsingInvokeExpression] Sync-QbitProtonPort.ps1:' -Requires $HasAnalyzer
+    Case 'lint: empty catch block' $L copy (Add-Text 'harness/Test-Secrets.ps1' "`ntry { 1 } catch { }") 1 '[PSAvoidUsingEmptyCatchBlock] harness/Test-Secrets.ps1:' -Requires $HasAnalyzer
+    Case 'lint: suppression that matches nothing' $L copy (Edit-Text $Script "SuppressMessageAttribute('PSAvoidOverwritingBuiltInCmdlets', ''," "SuppressMessageAttribute('PSAvoidOverwritingBuiltInCmdlets', 'Nothing',") 2 'PSScriptAnalyzer failed' -Requires $HasAnalyzer
+    Case 'lint: annotation in CI' $L copy (Add-Text $Script "`nInvoke-Expression `$env:QBIT_PATH") 1 '::error file=Sync-QbitProtonPort.ps1,line=' -Env @{ GITHUB_ACTIONS = 'true' } -Requires $HasAnalyzer
 
     # --- Test-Unit.ps1 (Pester)
     Case 'unit: real repository' $U real $null 0 'GREEN' -Requires $HasPester

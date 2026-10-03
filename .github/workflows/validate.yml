@@ -32,12 +32,13 @@ jobs:
         with:
           fetch-depth: 0  # the whole history: the commits of the range below must be readable
           persist-credentials: false  # nothing is pushed: don't leave the token in .git/config
-      - name: Install the harness tools (zizmor, Pester)
+      - name: Install the harness tools (zizmor, Pester, PSScriptAnalyzer)
         run: |
           python -m pip install --disable-pip-version-check -r harness/requirements.txt
           # PowerShell Gallery modules: pinned here, updated by hand (Dependabot doesn't follow them).
           Install-PSResource Pester -Version 6.1.0 -Scope CurrentUser -TrustRepository
-      - name: Run the offline harness (consistency, secrets, workflows, unit tests, commit messages, tests of the checks)
+          Install-PSResource PSScriptAnalyzer -Version 1.25.0 -Scope CurrentUser -TrustRepository
+      - name: Run the offline harness (consistency, secrets, workflows, lint, unit tests, commit messages, tests of the checks)
         env:
           # Commits whose messages are checked: those of the pull request, or those pushed to main (squash
           # messages written on GitHub). Dependabot's pull requests are skipped: their messages are rewritten

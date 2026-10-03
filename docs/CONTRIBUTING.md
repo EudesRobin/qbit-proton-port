@@ -15,9 +15,14 @@ Some checks need tools that don't ship with Windows. Install them once, at the v
 ```powershell
 python -m pip install -r harness/requirements.txt                       # zizmor, audit of the workflows
 Install-Module Pester -RequiredVersion 6.1.0 -Force -SkipPublisherCheck  # Pester 6, unit tests
+Install-PSResource PSScriptAnalyzer -Version 1.25.0 -Scope CurrentUser -TrustRepository  # static analysis
 ```
 
-`-SkipPublisherCheck` is needed because Windows ships an old Pester 3 signed by another publisher. Any Pester 6.x works locally (`Update-Module Pester` keeps it current); CI pins the version in the [CI workflow](../.github/workflows/validate.yml), updated by hand since Dependabot doesn't follow PowerShell Gallery modules.
+`-SkipPublisherCheck` is needed because Windows ships an old Pester 3 signed by another publisher. Any Pester 6.x and any PSScriptAnalyzer version work locally (`Update-Module Pester` keeps Pester current); CI pins both versions in the [CI workflow](../.github/workflows/validate.yml), updated by hand since Dependabot doesn't follow PowerShell Gallery modules.
+
+## PowerShell code
+
+`Test-Lint.ps1` runs PSScriptAnalyzer on every PowerShell file, and every error or warning is red. A rule that doesn't fit the whole repository is excluded in [`PSScriptAnalyzerSettings.psd1`](../PSScriptAnalyzerSettings.psd1), with the reason in a comment. A single finding that is wrong where it occurs is suppressed there, with a `[Diagnostics.CodeAnalysis.SuppressMessageAttribute()]` and its `Justification`. Never exclude or suppress a finding only to turn the check green.
 
 A missing tool makes its check exit 2 ("could not run"): the pre-commit hook lets the commit through with a warning, but CI installs every tool and stays strict.
 

@@ -9,6 +9,9 @@
     nothing is written outside TestDrive. Log lines follow the format of docs/EXTERNAL-CONTRACTS.md, with
     timestamps relative to now, as the script compares them with the current time.
 #>
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', '',
+    Justification = 'The paths set in BeforeAll are read by the dot-sourced functions of the script.')]
+param()
 
 BeforeAll {
     $env:QBIT_PROTON_PORT_HOME = Join-Path $TestDrive 'data'

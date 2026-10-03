@@ -429,6 +429,9 @@ function Register-SyncTask {
 
 # --- Main --------------------------------------------------------------------------
 
+# Dot-sourced (tests/): define the functions, run nothing.
+if ($MyInvocation.InvocationName -eq '.') { return }
+
 try {
     if (-not (Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir | Out-Null }
     switch ($PSCmdlet.ParameterSetName) {

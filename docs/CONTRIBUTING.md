@@ -13,8 +13,11 @@ git config core.hooksPath .githooks
 Some checks need tools that don't ship with Windows. Install them once, at the versions CI uses:
 
 ```powershell
-python -m pip install -r harness/requirements.txt   # zizmor, audit of the workflows
+python -m pip install -r harness/requirements.txt                       # zizmor, audit of the workflows
+Install-Module Pester -RequiredVersion 6.1.0 -Force -SkipPublisherCheck  # Pester 6, unit tests
 ```
+
+`-SkipPublisherCheck` is needed because Windows ships an old Pester 3 signed by another publisher. Any Pester 6.x works locally (`Update-Module Pester` keeps it current); CI pins the version in the [CI workflow](../.github/workflows/validate.yml), updated by hand since Dependabot doesn't follow PowerShell Gallery modules.
 
 A missing tool makes its check exit 2 ("could not run"): the pre-commit hook lets the commit through with a warning, but CI installs every tool and stays strict.
 

@@ -11,7 +11,7 @@ The security rules and the verification loop below apply to every task. Before a
 | About to… | Read first |
 |---|---|
 | Change or diagnose how the script reads the Proton VPN log, edits `qBittorrent.ini`, calls the Web API or detects a process | [External contracts](docs/EXTERNAL-CONTRACTS.md) |
-| Add or change a harness check or a README troubleshooting row, test a failure case, or commit | [Harness](docs/HARNESS.md) |
+| Add or change a harness check, a unit test or a README troubleshooting row, test a failure case, or commit | [Harness](docs/HARNESS.md) |
 | Write or edit documentation | [Contributing: documentation](docs/CONTRIBUTING.md#documentation) |
 | Commit, open or merge a pull request, touch a GitHub Action or a Dependabot pull request | [Contributing](docs/CONTRIBUTING.md) |
 | Decide whether a change needs a changelog entry, or write one | [Contributing: changelog](docs/CONTRIBUTING.md#changelog) |
@@ -31,6 +31,7 @@ No row fits the task, or two documents disagree: say so to the user before actin
 | `LICENSE` | MIT |
 | `docs/` | Instructions read on demand, routed by [Where to look](#where-to-look) |
 | `harness/` | Offline checks, all run by `Invoke-Harness.ps1`: see [docs/HARNESS.md](docs/HARNESS.md) |
+| `tests/` | Pester 6 tests of the script's functions, with Proton VPN mocked and every file in a temporary folder; run by `harness/Test-Unit.ps1` |
 | `.githooks/` | `pre-commit` (Invoke-Harness, then `Test-Secrets -Staged`) and `commit-msg` (Test-CommitMessage) |
 | `.gitattributes` | Keeps the git hooks in LF, as `sh` requires |
 | `.github/workflows/validate.yml` | CI workflow, job `validate` (the check required on `main`): runs `Invoke-Harness.ps1` on Windows for every push to `main`, every pull request and on demand |

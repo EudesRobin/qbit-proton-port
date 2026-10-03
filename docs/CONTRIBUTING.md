@@ -16,18 +16,26 @@ git config core.hooksPath .githooks
 - No AI attribution in commits or pull request descriptions: no `Co-Authored-By`, no "Generated with".
 - The author email for this repository is the GitHub no-reply address, set in the local git config.
 
-The [commit-msg hook](../.githooks/commit-msg) checks all of this except the language and the email. CI doesn't check commit messages.
+The [commit-msg hook](../.githooks/commit-msg) checks all of this except the language and the email. CI checks the same rules on the commits of each pull request, merges and Dependabot's pull requests excepted, and on the commits pushed to `main`. To check a branch before pushing it:
+
+```powershell
+.\harness\Invoke-Harness.ps1 -CommitRange origin/main..HEAD
+```
 
 ## Pull requests
 
-- `main` is protected: every change goes through a branch and a pull request, merged once the `validate` check is green.
+- `main` is protected: every change goes through a branch and a pull request, merged once the `validate` check is green on a branch up to date with `main`. A branch behind `main` is updated first (*Update branch* on the pull request), which runs CI again on the result.
 - Dependabot's commit messages are in English and carry the release notes: squash-merge its pull requests, with a message that follows the [commit rules](#commits).
 
-No hook checks a pull request description or a squash message written on GitHub: apply the commit rules by hand.
+No hook checks a pull request description, and a squash message written on GitHub is only checked once on `main`, by CI: apply the commit rules by hand.
 
 ## GitHub Actions
 
 Actions are pinned to a commit SHA, with the version in a comment (`uses: owner/action@<sha>  # vX.Y.Z`): a tag can be moved to other code. [Dependabot](../.github/dependabot.yml) updates the SHA and the comment together.
+
+The protection of `main` requires one check, the `validate` job of the [CI workflow](../.github/workflows/validate.yml). Every check runs in that job, through `Invoke-Harness.ps1`, so a new check is required as soon as it is added to the harness. Don't rename the job. A separate job is not required by the protection: add one only behind an aggregating job named `validate`, which `needs` it and fails unless every job it needs succeeded.
+
+A value from the event (branch name, title, SHA) reaches a `run:` script through `env:`, never as `${{ }}` inside the script: expanded there, it would be code.
 
 ## Documentation
 

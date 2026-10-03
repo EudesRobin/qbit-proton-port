@@ -8,7 +8,12 @@
     A new check is added to $Checks, never to its callers.
     Each check prints its duration. On GitHub Actions, each check is a collapsible log group,
     and a table of the results is added to the job summary.
+
+.PARAMETER CommitRange
+    Git range whose commit messages are also checked, such as origin/main..HEAD. Empty: not checked.
 #>
+param([string] $CommitRange)
+
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'GitHubActions.ps1')
@@ -17,6 +22,7 @@ Set-StrictMode -Version Latest
 $Checks = @(
     ,@('Test-Consistency.ps1')
     ,@('Test-Secrets.ps1')
+    if ($CommitRange) { ,@('Test-CommitMessage.ps1', '-Range', $CommitRange) }
     ,@('Test-Harness.ps1')
 )
 

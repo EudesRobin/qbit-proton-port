@@ -17,8 +17,10 @@
       9. Every Markdown table has at least one data row.
      10. No text follows a closing code fence on its line: GitHub would keep the block open to the end of the file.
      11. CHANGELOG.md follows Keep a Changelog: its first section is ## [Unreleased], the others are
-         ## [X.Y.Z] - YYYY-MM-DD with decreasing versions and dates, subsections are Upgrade, Added, Changed, Deprecated, Removed, Fixed or Security,
-         every section has a link reference, and a version raising MAJOR has an Upgrade subsection.
+         ## [X.Y.Z] - YYYY-MM-DD with decreasing versions and dates, subsections are among 💥 Upgrade,
+         🚀 Added, 🔄 Changed, ⏳ Deprecated, 🔥 Removed, 🐛 Fixed, 🔒 Security, 📝 Documentation, 🧹 Maintenance,
+         each once and in that order, every section has a link reference, and a version raising MAJOR has a
+         💥 Upgrade subsection.
 
     Troubleshooting rows quote the static part of a message in backticks; "..." stands for a variable part.
     A message is matched when one of its static parts (10+ characters) and a quoted fragment contain each other.
@@ -237,7 +239,9 @@ foreach ($md in $mdFiles) {
 
 # --- 11. Changelog -----------------------------------------------------------------------------
 $ChangelogFile = 'CHANGELOG.md'
-$ChangelogSections = 'Upgrade', 'Added', 'Changed', 'Deprecated', 'Removed', 'Fixed', 'Security'
+# Keep a Changelog categories, plus Documentation and Maintenance, each with its emoji (docs/CONTRIBUTING.md).
+$ChangelogSections = '💥 Upgrade', '🚀 Added', '🔄 Changed', '⏳ Deprecated', '🔥 Removed', '🐛 Fixed', '🔒 Security',
+                     '📝 Documentation', '🧹 Maintenance'
 $changelogPath = Join-Path $Root $ChangelogFile
 $releases = [Collections.Generic.List[object]]::new()
 if (-not (Test-Path $changelogPath)) { Fail 'changelog' "$ChangelogFile is missing" $ChangelogFile }
@@ -264,7 +268,13 @@ else {
         } elseif ($line -match '^###\s+(.+?)\s*$') {
             if ($Matches[1] -notin $ChangelogSections) {
                 Fail 'changelog' "${ChangelogFile}: line ${n}: '### $($Matches[1])' is not one of: $($ChangelogSections -join ', ')" $ChangelogFile $n
-            } elseif ($current) { $current.Sections.Add($Matches[1]) }
+            } elseif ($current) {
+                $previous = if ($current.Sections.Count) { $ChangelogSections.IndexOf($current.Sections[-1]) } else { -1 }
+                if ($ChangelogSections.IndexOf($Matches[1]) -le $previous) {
+                    Fail 'changelog' "${ChangelogFile}: line ${n}: '### $($Matches[1])' must come before '### $($current.Sections[-1])', once" $ChangelogFile $n
+                }
+                $current.Sections.Add($Matches[1])
+            }
         }
     }
     if (-not $headings) { Fail 'changelog' "$ChangelogFile has no ## [Unreleased] section" $ChangelogFile }
@@ -276,8 +286,8 @@ else {
         if ($older.Date -gt $newer.Date) {
             Fail 'changelog' "${ChangelogFile}: line $($older.Line): dates must not increase down the file" $ChangelogFile $older.Line
         }
-        if ($newer.Version.Major -gt $older.Version.Major -and 'Upgrade' -notin $newer.Sections) {
-            Fail 'changelog' "${ChangelogFile}: line $($newer.Line): $($newer.Version) raises MAJOR and has no ### Upgrade section" $ChangelogFile $newer.Line
+        if ($newer.Version.Major -gt $older.Version.Major -and '💥 Upgrade' -notin $newer.Sections) {
+            Fail 'changelog' "${ChangelogFile}: line $($newer.Line): $($newer.Version) raises MAJOR and has no ### 💥 Upgrade section" $ChangelogFile $newer.Line
         }
     }
     foreach ($name in @('Unreleased') + @($releases | ForEach-Object { "$($_.Version)" })) {

@@ -59,9 +59,21 @@ Incrementing a number resets the ones after it: `1.4.2` becomes `1.5.0` or `2.0.
 
 ### Changelog
 
-[CHANGELOG.md](../CHANGELOG.md) follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and lists what a user of the script can notice. A pull request with such a change adds an entry under `## [Unreleased]`, in one of these subsections, in this order: `Upgrade`, `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`. Changes to the harness, CI or contributor documentation get no entry.
+[CHANGELOG.md](../CHANGELOG.md) follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), with an emoji per category so that the content of a release shows at a glance. Every pull request adds its entries under `## [Unreleased]`, in these subsections, each once and in this order:
 
-`Upgrade` says what an existing setup must do, such as registering the scheduled task again: a version raising `MAJOR` must have one. `Test-Consistency.ps1` checks the format, the order of the versions and their dates, the link references and this `Upgrade` section; the wording of the entries is checked by reading.
+| Subsection | Content | Usual commit prefix |
+|---|---|---|
+| `### 💥 Upgrade` | What an existing setup must do, such as registering the scheduled task again. Required in a version raising `MAJOR` | |
+| `### 🚀 Added` | A new parameter, setting or behaviour | `feat` |
+| `### 🔄 Changed` | An existing behaviour that works differently | `feat`, `fix` |
+| `### ⏳ Deprecated` | Something that still works but will be removed | |
+| `### 🔥 Removed` | Something that no longer exists | |
+| `### 🐛 Fixed` | A bug fix | `fix` |
+| `### 🔒 Security` | A fix or hardening of the [security model](../README.md#security) | `fix` |
+| `### 📝 Documentation` | The README or the contributor documentation | `docs` |
+| `### 🧹 Maintenance` | The harness, CI, tests, dependencies, refactoring | `chore`, `build`, `test`, `refactor` |
+
+An entry describes the result for its reader, in one line, not the commits. `Test-Consistency.ps1` checks the format, the subsections and their order, the order of the versions and their dates, the link references and the `💥 Upgrade` section of a major version; the wording of the entries is checked by reading.
 
 ### Release steps
 

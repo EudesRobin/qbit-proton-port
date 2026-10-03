@@ -65,7 +65,8 @@ After **each** edit, before building anything on top of it, proposing a commit, 
 
 1. Run `.\harness\Invoke-Harness.ps1`.
 2. `Sync-QbitProtonPort.ps1` changed: run it for real (**Run** above), and read the output and exit code.
-3. A behaviour, parameter, setting, message or file location changed: update the README in the same commit (usage, settings, troubleshooting, how it works, security), add an entry under `[Unreleased]` in `CHANGELOG.md` for a change a user can notice, and this file or `docs/` when the layout, an external contract or a security rule changed. Reread the sections the diff touches, fix any statement that became wrong, and document any new behaviour that is missing: `Test-Consistency.ps1` covers only the mechanical part.
-4. Red, or a statement became wrong → read the cause, fix, and start again at 1.
+3. A behaviour, parameter, setting, message or file location changed: update the README in the same commit (usage, settings, troubleshooting, how it works, security), and this file or `docs/` when the layout, an external contract or a security rule changed. Reread the sections the diff touches, fix any statement that became wrong, and document any new behaviour that is missing: `Test-Consistency.ps1` covers only the mechanical part.
+4. Every change, whatever its kind: add its entry under `[Unreleased]` in `CHANGELOG.md`, in the [category](docs/CONTRIBUTING.md#changelog) that fits.
+5. Red, or a statement became wrong → read the cause, fix, and start again at 1.
 
 **At most 3 attempts.** If the loop is still red after the third fix, stop editing. Reply with a concise report giving, for each attempt, the change made and the resulting error. Then ask the user what to do next. Never weaken or skip a check to turn it green.

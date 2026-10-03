@@ -7,6 +7,10 @@
     so the local output stays unchanged. Never pass a secret value: annotations are public on a public repository.
 #>
 
+# Messages and workflow commands are written in UTF-8, even when the output is redirected (CI, Test-Harness):
+# otherwise a non-ASCII character, such as the changelog emojis, is printed as '?'.
+try { [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false) } catch { }
+
 function Test-GitHubActions { $env:GITHUB_ACTIONS -eq 'true' }
 
 # Escaping of workflow commands: %, CR and LF in the message; also : and , in a property.

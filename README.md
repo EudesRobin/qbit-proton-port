@@ -136,7 +136,7 @@ Each run is logged to `%LOCALAPPDATA%\qbit-proton-port\logs\sync.log`. Past 1 MB
 
 ## Updating
 
-Every release is listed in [CHANGELOG.md](CHANGELOG.md) and on the repository's Releases page. Before updating to a new major version (`2.0.0`, `3.0.0`...), read its **Upgrade** section: your setup needs a change. Then update your copy with `git pull`, or download the new ZIP and unblock it as in [step 1](#1-get-the-script).
+Every release is listed in [CHANGELOG.md](CHANGELOG.md) and on the repository's Releases page. Before updating to a new major version (`2.0.0`, `3.0.0`...), read its **💥 Upgrade** section: your setup needs a change. Then update your copy with `git pull`, or download the new ZIP and unblock it as in [step 1](#1-get-the-script).
 
 ## Troubleshooting
 

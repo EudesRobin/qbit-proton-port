@@ -10,6 +10,7 @@ Routed from [AGENTS.md](../AGENTS.md#where-to-look), which holds the [verificati
 | [`harness/Test-Consistency.ps1`](../harness/Test-Consistency.ps1) | Script, `.env.example` and Markdown files agree |
 | [`harness/Test-Secrets.ps1`](../harness/Test-Secrets.ps1) | No runtime file, key, fingerprint, user path, IP or local `.env` value in what would be published; `-Staged` for the staged diff |
 | [`harness/Test-Workflows.ps1`](../harness/Test-Workflows.ps1) | The GitHub Actions workflows pass the zizmor audit (see [Contributing](CONTRIBUTING.md#github-actions)) |
+| [`harness/Test-Lint.ps1`](../harness/Test-Lint.ps1) | PSScriptAnalyzer on every PowerShell file, with the exclusions of [`PSScriptAnalyzerSettings.psd1`](../PSScriptAnalyzerSettings.psd1) (see [Contributing](CONTRIBUTING.md#powershell-code)) |
 | [`harness/Test-Unit.ps1`](../harness/Test-Unit.ps1) | Pester tests of the script's functions, in [`tests/`](../tests/Sync-QbitProtonPort.Tests.ps1): Proton VPN log, `qBittorrent.ini`, `.env` |
 | [`harness/requirements.txt`](../harness/requirements.txt) | Not a check: the pinned Python tools of the checks, installed by CI |
 | [`harness/Test-CommitMessage.ps1`](../harness/Test-CommitMessage.ps1) | Commit message rules (see [Contributing](CONTRIBUTING.md#commits)): one message for the hook, or the commits of a range with `Invoke-Harness.ps1 -CommitRange` |

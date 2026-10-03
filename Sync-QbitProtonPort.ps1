@@ -23,6 +23,10 @@
     ./Sync-QbitProtonPort.ps1 -RegisterTask    # re-sync every 5 minutes while logged on
     ./Sync-QbitProtonPort.ps1 -ShowConfig      # show where settings, key and logs are stored
 #>
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '',
+    Justification = 'Each switch selects its parameter set, read through $PSCmdlet.ParameterSetName.')]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidOverwritingBuiltInCmdlets', '',
+    Justification = 'PowerShell 7.3+, which the script requires, has no Write-Log cmdlet; only the 6.1 reference profile of the rule lists one.')]
 [CmdletBinding(DefaultParameterSetName = 'Sync')]
 param(
     [Parameter(ParameterSetName = 'Sync')] [switch] $SyncOnly,

@@ -23,6 +23,7 @@ $Checks = @(
     ,@('Test-Consistency.ps1')
     ,@('Test-Secrets.ps1')
     ,@('Test-Workflows.ps1')
+    ,@('Test-Lint.ps1')
     ,@('Test-Unit.ps1')
     if ($CommitRange) { ,@('Test-CommitMessage.ps1', '-Range', $CommitRange) }
     ,@('Test-Harness.ps1')

@@ -9,7 +9,7 @@
 
 # Messages and workflow commands are written in UTF-8, even when the output is redirected (CI, Test-Harness):
 # otherwise a non-ASCII character, such as the changelog emojis, is printed as '?'.
-try { [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false) } catch { }
+try { [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false) } catch { Write-Verbose "Output encoding unchanged: $_" }
 
 function Test-GitHubActions { $env:GITHUB_ACTIONS -eq 'true' }
 

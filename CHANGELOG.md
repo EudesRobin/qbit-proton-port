@@ -15,6 +15,7 @@ The changes of each release, sorted by category: 💥 upgrade steps, 🚀 new fe
 - Each version tag is published as a GitHub Release, with its section of this changelog as notes.
 - CI audits the workflows with zizmor, at a version pinned in `harness/requirements.txt` and updated by Dependabot.
 - Pester tests of the script's functions (Proton VPN log, `qBittorrent.ini`, `.env`), run by the harness and CI.
+- PSScriptAnalyzer checks every PowerShell file in the harness and CI.
 
 ## [1.0.0] - 2026-09-27
 

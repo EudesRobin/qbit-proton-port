@@ -40,8 +40,8 @@ jobs:
           Install-PSResource PSScriptAnalyzer -Version 1.25.0 -Scope CurrentUser -TrustRepository
       - name: Run the offline harness (consistency, secrets, workflows, lint, unit tests, commit messages, tests of the checks)
         env:
-          # Commits whose messages are checked: those of the pull request, or those pushed to main (squash
-          # messages written on GitHub). Dependabot's pull requests are skipped: their messages are rewritten
-          # at squash, then checked on main. Passed through the environment, never expanded in the script.
-          COMMIT_RANGE: ${{ github.event_name == 'pull_request' && github.event.pull_request.user.login != 'dependabot[bot]' && format('{0}..{1}', github.event.pull_request.base.sha, github.event.pull_request.head.sha) || github.event_name == 'push' && format('{0}..{1}', github.event.before, github.event.after) || '' }}
+          # Commits whose messages are checked: those of the pull request, or those pushed to main.
+          # Test-CommitMessage skips merges and Dependabot's commits. Passed through the environment, never
+          # expanded in the script.
+          COMMIT_RANGE: ${{ github.event_name == 'pull_request' && format('{0}..{1}', github.event.pull_request.base.sha, github.event.pull_request.head.sha) || github.event_name == 'push' && format('{0}..{1}', github.event.before, github.event.after) || '' }}
         run: .\harness\Invoke-Harness.ps1 -CommitRange $env:COMMIT_RANGE

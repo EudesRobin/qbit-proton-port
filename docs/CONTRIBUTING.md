@@ -32,7 +32,7 @@ A missing tool makes its check exit 2 ("could not run"): the pre-commit hook let
 - No AI attribution in commits or pull request descriptions: no `Co-Authored-By`, no "Generated with".
 - The author email for this repository is the GitHub no-reply address, set in the local git config.
 
-The [commit-msg hook](../.githooks/commit-msg) checks all of this except the language and the email. CI checks the same rules on the commits of each pull request, merges and Dependabot's pull requests excepted, and on the commits pushed to `main`. To check a branch before pushing it:
+The [commit-msg hook](../.githooks/commit-msg) checks all of this except the language and the email. CI checks the same rules on the commits of each pull request and on the commits pushed to `main`, merges and Dependabot's commits excepted. To check a branch before pushing it:
 
 ```powershell
 .\harness\Invoke-Harness.ps1 -CommitRange origin/main..HEAD
@@ -41,13 +41,13 @@ The [commit-msg hook](../.githooks/commit-msg) checks all of this except the lan
 ## Pull requests
 
 - `main` is protected: every change goes through a branch and a pull request, merged once the `validate` check is green on a branch up to date with `main`. A branch behind `main` is updated first (*Update branch* on the pull request), which runs CI again on the result.
-- Dependabot's commit messages are in English and carry the release notes: squash-merge its pull requests, with a message that follows the [commit rules](#commits).
+- Dependabot's pull requests are merged with a merge commit, like the others: its commits keep their English messages and release notes, which the commit checks skip.
 
 No hook checks a pull request description, and a squash message written on GitHub is only checked once on `main`, by CI: apply the commit rules by hand.
 
 ## GitHub Actions
 
-Actions are pinned to a commit SHA, with the version in a comment (`uses: owner/action@<sha>  # vX.Y.Z`): a tag can be moved to other code. [Dependabot](../.github/dependabot.yml) updates the SHA and the comment together.
+Actions are pinned to a commit SHA, with the version in a comment (`uses: owner/action@<sha>  # vX.Y.Z`): a tag can be moved to other code. The repository's Actions settings enforce it (*Require actions to be pinned to a full-length commit SHA*). [Dependabot](../.github/dependabot.yml) updates the SHA and the comment together.
 
 The protection of `main` requires one check, the `validate` job of the [CI workflow](../.github/workflows/validate.yml). Every check runs in that job, through `Invoke-Harness.ps1`, so a new check is required as soon as it is added to the harness. Don't rename the job. A separate job is not required by the protection: add one only behind an aggregating job named `validate`, which `needs` it and fails unless every job it needs succeeded.
 
@@ -108,8 +108,8 @@ An entry describes the result for its reader, in one line, not the commits. `Tes
 
 4. **Check the release.** Pushing the tag runs the [Release workflow](../.github/workflows/release.yml), which publishes the GitHub Release with the version's changelog section as notes. Check its run, then the release page.
 
-A tag published without its GitHub Release, or whose run failed, is published again on demand: `gh workflow run release.yml -f tag=<version>`. That run reads `CHANGELOG.md` from `main`.
+A tag published without its GitHub Release, or whose run failed, is published again on demand: `gh workflow run release.yml -f tag=<version>`. That run reads `CHANGELOG.md` from `main`, and fails if started from another branch.
 
 - **Annotated tag** (`-a`): it records the author and the release date, which a lightweight tag doesn't.
 - **Ask before publishing.** `git push` of the tag, and `gh workflow run release.yml`, make the version public: get the user's approval before running them.
-- **Never move or delete a published tag**: a clone that already fetched it would keep the old target. Fix a mistake with a new release.
+- **Never move or delete a published tag**: a clone that already fetched it would keep the old target. Fix a mistake with a new release. The `Version tags` ruleset of the repository refuses the update or deletion of any tag on GitHub.

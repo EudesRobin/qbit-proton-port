@@ -29,7 +29,7 @@ A case whose check needs a missing tool (such as zizmor) is skipped and counted 
 
 ## In CI
 
-The [`CI` workflow](../.github/workflows/validate.yml) runs `Invoke-Harness.ps1`. There, each check is a collapsible group of the log, with its exit code and duration; the job summary on the page of the run has a table of the results; and each problem found by `Test-Consistency.ps1`, `Test-Secrets.ps1` or `Test-Workflows.ps1` is an error annotation on its file, and on its line when known, shown in the pull request. CI also passes `-CommitRange`: the commits of the pull request, or those pushed to `main`, each badly written message being an annotation naming the commit. Outside GitHub Actions the output is unchanged, apart from the durations.
+The [`CI` workflow](../.github/workflows/validate.yml) runs `Invoke-Harness.ps1`. There, each check is a collapsible group of the log, with its exit code and duration; the job summary on the page of the run has a table of the results; and each problem found by `Test-Consistency.ps1`, `Test-Secrets.ps1` or `Test-Workflows.ps1` is an error annotation on its file, and on its line when known, shown in the pull request. CI also passes `-CommitRange`: the commits of the pull request, or those pushed to `main`, merges and Dependabot's commits excepted, each badly written message being an annotation naming the commit. Outside GitHub Actions the output is unchanged, apart from the durations.
 
 An annotation is public on a public repository: like the console messages, it never contains a matched value.
 

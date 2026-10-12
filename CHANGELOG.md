@@ -4,6 +4,8 @@ The changes of each release, sorted by category: 💥 upgrade steps, 🚀 new fe
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-10-12
+
 ### 🧹 Maintenance
 
 - The Release workflow run on demand fails unless started from `main`.
@@ -36,6 +38,7 @@ The changes of each release, sorted by category: 💥 upgrade steps, 🚀 new fe
 - Background scheduled task every 5 minutes, under the user's account and without admin rights.
 - Commands `-SyncOnly`, `-PauseOnError`, `-RegisterTask`, `-UnregisterTask`, `-ShowConfig`, `-ResetCredential` and `-NewCertificate`.
 
-[Unreleased]: https://github.com/EudesRobin/qbit-proton-port/compare/1.0.1...HEAD
+[Unreleased]: https://github.com/EudesRobin/qbit-proton-port/compare/1.0.2...HEAD
+[1.0.2]: https://github.com/EudesRobin/qbit-proton-port/compare/1.0.1...1.0.2
 [1.0.1]: https://github.com/EudesRobin/qbit-proton-port/compare/1.0.0...1.0.1
 [1.0.0]: https://github.com/EudesRobin/qbit-proton-port/releases/tag/1.0.0

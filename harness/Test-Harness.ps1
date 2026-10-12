@@ -66,9 +66,10 @@ function Message([string] $Text) { Add-Text 'MSG' $Text }
 function Remove-File([string] $Rel) { { param($d) Remove-Item (Join-Path $d $Rel) }.GetNewClosure() }
 # Several alterations, in order.
 function Steps([scriptblock[]] $Alterations) { { param($d) foreach ($a in $Alterations) { & $a $d } }.GetNewClosure() }
-# Makes the folder a git repository: a commit tagged base, then one commit per message, then a merge
-# commit with a message breaking every rule when -Merge is set.
-function Commits([string[]] $Messages, [switch] $Merge) {
+# Makes the folder a git repository: a commit tagged base, then one commit per message, then one commit
+# authored by Dependabot per -Dependabot message, then a merge commit with a message breaking every rule
+# when -Merge is set.
+function Commits([string[]] $Messages, [string[]] $Dependabot = @(), [switch] $Merge) {
     {
         param($d)
         $git = @('-C', $d, '-c', 'user.name=Test', '-c', 'user.email=test@example.com', '-c', 'commit.gpgsign=false')
@@ -76,6 +77,9 @@ function Commits([string[]] $Messages, [switch] $Merge) {
         git @git commit -q --allow-empty -m 'chore: base'
         git -C $d tag base
         foreach ($m in $Messages) { git @git commit -q --allow-empty -m $m }
+        foreach ($m in $Dependabot) {
+            git @git commit -q --allow-empty -m $m --author 'dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>'
+        }
         if ($Merge) {
             git -C $d switch -q -c side base
             git @git commit -q --allow-empty -m 'test: side'
@@ -199,6 +203,7 @@ $Cases = @(
     Case 'commit range: valid commits' $M empty (Commits 'feat: ajoute un réglage', 'fix: corrige la lecture') 0 'GREEN: 2 commit(s)' $RangeArgs
     Case 'commit range: bad message' $M empty (Commits 'feat: ajoute un réglage', 'corrige la lecture') 1 'must start with' $RangeArgs
     Case 'commit range: merge commit not checked' $M empty (Commits 'feat: ajoute un réglage' -Merge) 0 'GREEN: 2 commit(s)' $RangeArgs
+    Case 'commit range: Dependabot commit not checked' $M empty (Commits 'feat: ajoute un réglage' -Dependabot "Bump x from 1.0.0 to 1.0.1.`n`n$('notes ' * 60)") 0 'GREEN: 1 commit(s)' $RangeArgs
     Case 'commit range: unknown range' $M empty (Commits 'feat: ajoute un réglage') 2 'Cannot read the commits' @('-Range', 'nowhere..HEAD', '-Root', '{root}')
     Case 'commit range: annotation in CI' $M empty (Commits 'corrige la lecture') 1 '::error title=commit ' $RangeArgs -Env @{ GITHUB_ACTIONS = 'true' }
 )

@@ -4,6 +4,12 @@ The changes of each release, sorted by category: 💥 upgrade steps, 🚀 new fe
 
 ## [Unreleased]
 
+### 🧹 Maintenance
+
+- The Release workflow run on demand fails unless started from `main`.
+- On GitHub, version tags can no longer be updated or deleted, every action must be pinned to a commit SHA, and Dependabot proposes security updates without the 30-day delay.
+- Dependabot's pull requests are merged like the others, and the commit checks skip its commits.
+
 ## [1.0.1] - 2026-10-03
 
 ### 📝 Documentation

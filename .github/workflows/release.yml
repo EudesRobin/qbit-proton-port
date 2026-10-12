@@ -34,8 +34,12 @@ jobs:
     steps:
       - name: Check the tag name
         run: if ($env:TAG -notmatch '^\d+\.\d+\.\d+$') { throw "'$env:TAG' is not a version tag X.Y.Z." }
+      # On demand, this workflow and CHANGELOG.md come from the chosen branch: main only.
+      - name: Check that a run on demand starts from main
+        if: github.event_name == 'workflow_dispatch'
+        run: if ($env:GITHUB_REF -ne 'refs/heads/main') { throw "Run on demand from main only, not '$env:GITHUB_REF'." }
       # Actions are pinned to a commit SHA: a tag can be moved to other code.
-      # The ref that triggered the run: the tag when pushed, the chosen branch (main) on demand, so that a
+      # The ref that triggered the run: the tag when pushed, main on demand (checked above), so that a
       # release older than CHANGELOG.md can still be published. --verify-tag below requires the tag to exist.
       - name: Check out the triggering ref
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1

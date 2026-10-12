@@ -14,6 +14,7 @@
 
     -Path checks one message file: the commit-msg hook (.githooks/commit-msg).
     -Range checks every commit of a git range, merges excepted: CI, through Invoke-Harness.ps1 -CommitRange.
+    Commits authored by Dependabot are skipped too: merged as they are, they keep its English release notes.
     On GitHub Actions, each problem is also an error annotation naming the commit.
 
 .PARAMETER Path
@@ -64,8 +65,10 @@ if ($PSCmdlet.ParameterSetName -eq 'Path') {
     exit ([int][bool]$errors.Count)
 }
 
-$commits = @(git -C $Root log --no-merges --format=%H $Range)
+$Dependabot = '49699333+dependabot[bot]@users.noreply.github.com'
+$log = @(git -C $Root log --no-merges --format='%H %ae' $Range)
 if ($LASTEXITCODE -ne 0) { Write-Host "Cannot read the commits of range $Range." -ForegroundColor Yellow; exit 2 }
+$commits = @($log | Where-Object { ($_ -split ' ', 2)[1] -ne $Dependabot } | ForEach-Object { ($_ -split ' ', 2)[0] })
 $failed = 0
 foreach ($sha in $commits) {
     $short = $sha.Substring(0, 7)

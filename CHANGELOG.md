@@ -11,6 +11,7 @@ The changes of each release, sorted by category: 💥 upgrade steps, 🚀 new fe
 ### 🧹 Maintenance
 
 - The harness reports `PASSED` or `FAILED` instead of `GREEN` or `RED`, and the documentation says that a check passes or fails.
+- The Release workflow publishes a version only if its tag points to a commit of `main` on which CI passed.
 
 ## [1.0.2] - 2026-10-12
 

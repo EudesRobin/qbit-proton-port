@@ -118,7 +118,7 @@ An entry describes the result for its reader, in one line, not the commits. `Tes
    git push origin <version>
    ```
 
-4. **Check the release.** Pushing the tag runs the [Release workflow](../.github/workflows/release.yml), which publishes the GitHub Release with the version's changelog section as notes. Check its run, then the release page.
+4. **Check the release.** Pushing the tag runs the [Release workflow](../.github/workflows/release.yml). It checks that the tagged commit is on `main` and that CI passed on it, then publishes the GitHub Release with the version's changelog section as notes. Check its run, then the release page.
 
 A tag published without its GitHub Release, or whose run failed, is published again on demand: `gh workflow run release.yml -f tag=<version>`. That run reads `CHANGELOG.md` from `main`, and fails if started from another branch.
 

@@ -7,6 +7,7 @@ The changes of each release, sorted by category: 💥 upgrade steps, 🚀 new fe
 ### 📝 Documentation
 
 - Contributor documentation aligned with ia-tools: Definition of Done named as such and extended to workflow changes, changelog rule scoped, list of what no check covers, rules duplicated on purpose, and the rule for adding a document under `docs/`.
+- Commit messages are written in English.
 
 ### 🧹 Maintenance
 

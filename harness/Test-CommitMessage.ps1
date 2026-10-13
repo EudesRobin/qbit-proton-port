@@ -10,11 +10,11 @@
       - the whole message has 50 words at most;
       - no AI attribution (Co-Authored-By or "Generated with" naming an AI tool).
     Lines starting with # and everything below git's scissors line are ignored. Merge commits are not checked.
-    The language (French) is not checked.
+    The language (English) is not checked.
 
     -Path checks one message file: the commit-msg hook (.githooks/commit-msg).
     -Range checks every commit of a git range, merges excepted: CI, through Invoke-Harness.ps1 -CommitRange.
-    Commits authored by Dependabot are skipped too: merged as they are, they keep its English release notes.
+    Commits authored by Dependabot are skipped too: merged as they are, they keep its own messages and release notes.
     On GitHub Actions, each problem is also an error annotation naming the commit.
 
 .PARAMETER Path

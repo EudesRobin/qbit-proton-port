@@ -28,7 +28,7 @@ A missing tool makes its check exit 2 ("could not run"): the pre-commit hook let
 
 ## Commits
 
-- Commit messages are in French, 50 words at most. Start with one of these prefixes: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `build`, `revert`. The subject has no final period.
+- Commit messages are in English, 50 words at most. Start with one of these prefixes: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `build`, `revert`. The subject has no final period.
 - No AI attribution in commits or pull request descriptions: no `Co-Authored-By`, no "Generated with".
 - The author email for this repository is the GitHub no-reply address, set in the local git config.
 
@@ -41,7 +41,7 @@ The [commit-msg hook](../.githooks/commit-msg) checks all of this except the lan
 ## Pull requests
 
 - `main` is protected: every change goes through a branch and a pull request, merged once the `validate` check passes on a branch up to date with `main`. A branch behind `main` is updated first (*Update branch* on the pull request), which runs CI again on the result.
-- Dependabot's pull requests are merged with a merge commit, like the others: its commits keep their English messages and release notes, which the commit checks skip.
+- Dependabot's pull requests are merged with a merge commit, like the others: its commits keep their own messages and release notes, which the commit checks skip.
 
 No hook checks a pull request description, and a squash message written on GitHub is only checked once on `main`, by CI: apply the commit rules by hand.
 

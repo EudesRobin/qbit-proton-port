@@ -4,6 +4,8 @@ The changes of each release, sorted by category: 💥 upgrade steps, 🚀 new fe
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-10-13
+
 ### 📝 Documentation
 
 - Contributor documentation aligned with ia-tools: Definition of Done named as such and extended to workflow changes, changelog rule scoped, list of what no check covers, rules duplicated on purpose, and the rule for adding a document under `docs/`.
@@ -48,7 +50,8 @@ The changes of each release, sorted by category: 💥 upgrade steps, 🚀 new fe
 - Background scheduled task every 5 minutes, under the user's account and without admin rights.
 - Commands `-SyncOnly`, `-PauseOnError`, `-RegisterTask`, `-UnregisterTask`, `-ShowConfig`, `-ResetCredential` and `-NewCertificate`.
 
-[Unreleased]: https://github.com/EudesRobin/qbit-proton-port/compare/1.0.2...HEAD
+[Unreleased]: https://github.com/EudesRobin/qbit-proton-port/compare/1.0.3...HEAD
+[1.0.3]: https://github.com/EudesRobin/qbit-proton-port/compare/1.0.2...1.0.3
 [1.0.2]: https://github.com/EudesRobin/qbit-proton-port/compare/1.0.1...1.0.2
 [1.0.1]: https://github.com/EudesRobin/qbit-proton-port/compare/1.0.0...1.0.1
 [1.0.0]: https://github.com/EudesRobin/qbit-proton-port/releases/tag/1.0.0

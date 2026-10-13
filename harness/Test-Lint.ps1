@@ -1,11 +1,11 @@
 #Requires -Version 7.3
 <#
 .SYNOPSIS
-    Analyzes the PowerShell files with PSScriptAnalyzer. Exit 0 = green, 1 = red, 2 = could not run.
+    Analyzes the PowerShell files with PSScriptAnalyzer. Exit 0 = passed, 1 = failed, 2 = could not run.
 
 .DESCRIPTION
     Runs PSScriptAnalyzer on every .ps1, .psm1 and .psd1 file of the repository, with the errors and warnings
-    of PSScriptAnalyzerSettings.psd1. Every finding is red. A rule is excluded in that file, with the reason;
+    of PSScriptAnalyzerSettings.psd1. Every finding fails the check. A rule is excluded in that file, with the reason;
     a single finding is suppressed where it occurs, with a SuppressMessageAttribute and its justification.
     Messages give the rule, the file and the line; on GitHub Actions, each finding is also an error annotation.
     Any PSScriptAnalyzer version runs locally, 1.25.0 in CI. Without the module: exit 2, with the command
@@ -41,6 +41,6 @@ foreach ($f in $findings) {
     Write-GitHubError "PSScriptAnalyzer $($f.RuleName)" $f.Message $file $f.Line
 }
 
-if ($findings) { Write-Host "RED: $($findings.Count) finding(s)." -ForegroundColor Red; exit 1 }
-Write-Host "GREEN: PowerShell files analyzed by PSScriptAnalyzer $($module.Version)." -ForegroundColor Green
+if ($findings) { Write-Host "FAILED: $($findings.Count) finding(s)." -ForegroundColor Red; exit 1 }
+Write-Host "PASSED: PowerShell files analyzed by PSScriptAnalyzer $($module.Version)." -ForegroundColor Green
 exit 0

@@ -1,11 +1,11 @@
 #Requires -Version 7.3
 <#
 .SYNOPSIS
-    Audits the GitHub Actions workflows with zizmor. Exit 0 = green, 1 = red, 2 = could not run.
+    Audits the GitHub Actions workflows with zizmor. Exit 0 = passed, 1 = failed, 2 = could not run.
 
 .DESCRIPTION
     Runs zizmor, offline, with its default persona on .github/workflows: template injection, credentials left
-    by checkout, excessive permissions, unpinned actions, dangerous triggers... Every finding is red, whatever
+    by checkout, excessive permissions, unpinned actions, dangerous triggers... Every finding fails the check, whatever
     its severity. A finding accepted on purpose is ignored in the workflow itself, with a comment
     `# zizmor: ignore[<audit>]` saying why.
     Messages give the audit, the file and the line; on GitHub Actions, each finding is also an error annotation.
@@ -43,6 +43,6 @@ foreach ($f in $findings) {
     Write-GitHubError "zizmor $($f.ident)" $message $file $line
 }
 
-if ($findings) { Write-Host "RED: $($findings.Count) finding(s)." -ForegroundColor Red; exit 1 }
-Write-Host "GREEN: workflows audited by $(zizmor --version)." -ForegroundColor Green
+if ($findings) { Write-Host "FAILED: $($findings.Count) finding(s)." -ForegroundColor Red; exit 1 }
+Write-Host "PASSED: workflows audited by $(zizmor --version)." -ForegroundColor Green
 exit 0

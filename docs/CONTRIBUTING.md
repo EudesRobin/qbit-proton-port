@@ -22,13 +22,13 @@ Install-PSResource PSScriptAnalyzer -Version 1.25.0 -Scope CurrentUser -TrustRep
 
 ## PowerShell code
 
-`Test-Lint.ps1` runs PSScriptAnalyzer on every PowerShell file, and every error or warning is red. A rule that doesn't fit the whole repository is excluded in [`PSScriptAnalyzerSettings.psd1`](../PSScriptAnalyzerSettings.psd1), with the reason in a comment. A single finding that is wrong where it occurs is suppressed there, with a `[Diagnostics.CodeAnalysis.SuppressMessageAttribute()]` and its `Justification`. Never exclude or suppress a finding only to turn the check green.
+`Test-Lint.ps1` runs PSScriptAnalyzer on every PowerShell file, and every error or warning fails it. A rule that doesn't fit the whole repository is excluded in [`PSScriptAnalyzerSettings.psd1`](../PSScriptAnalyzerSettings.psd1), with the reason in a comment. A single finding that is wrong where it occurs is suppressed there, with a `[Diagnostics.CodeAnalysis.SuppressMessageAttribute()]` and its `Justification`. Never exclude or suppress a finding only to make the check pass.
 
 A missing tool makes its check exit 2 ("could not run"): the pre-commit hook lets the commit through with a warning, but CI installs every tool and stays strict.
 
 ## Commits
 
-- Commit messages are in French, 50 words at most. Start with one of these prefixes: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `build`, `revert`. The subject has no final period.
+- Commit messages are in English, 50 words at most. Start with one of these prefixes: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `build`, `revert`. The subject has no final period.
 - No AI attribution in commits or pull request descriptions: no `Co-Authored-By`, no "Generated with".
 - The author email for this repository is the GitHub no-reply address, set in the local git config.
 
@@ -40,8 +40,8 @@ The [commit-msg hook](../.githooks/commit-msg) checks all of this except the lan
 
 ## Pull requests
 
-- `main` is protected: every change goes through a branch and a pull request, merged once the `validate` check is green on a branch up to date with `main`. A branch behind `main` is updated first (*Update branch* on the pull request), which runs CI again on the result.
-- Dependabot's pull requests are merged with a merge commit, like the others: its commits keep their English messages and release notes, which the commit checks skip.
+- `main` is protected: every change goes through a branch and a pull request, merged once the `validate` check passes on a branch up to date with `main`. A branch behind `main` is updated first (*Update branch* on the pull request), which runs CI again on the result.
+- Dependabot's pull requests are merged with a merge commit, like the others: its commits keep their own messages and release notes, which the commit checks skip.
 
 No hook checks a pull request description, and a squash message written on GitHub is only checked once on `main`, by CI: apply the commit rules by hand.
 
@@ -53,13 +53,25 @@ The protection of `main` requires one check, the `validate` job of the [CI workf
 
 A value from the event (branch name, title, SHA) reaches a `run:` script through `env:`, never as `${{ }}` inside the script: expanded there, it would be code.
 
-`Test-Workflows.ps1` audits the workflows with [zizmor](https://docs.zizmor.sh/), and every finding is red. A finding accepted on purpose is ignored on its line with `# zizmor: ignore[<audit>]`, followed by the reason. The version of zizmor is pinned in [`harness/requirements.txt`](../harness/requirements.txt), which Dependabot updates like the actions.
+`Test-Workflows.ps1` audits the workflows with [zizmor](https://docs.zizmor.sh/), and every finding fails it. A finding accepted on purpose is ignored on its line with `# zizmor: ignore[<audit>]`, followed by the reason. The version of zizmor is pinned in [`harness/requirements.txt`](../harness/requirements.txt), which Dependabot updates like the actions.
 
 ## Documentation
 
 Documentation is in English. It describes the result, not the process.
 
 The README is the user's documentation; [AGENTS.md](../AGENTS.md) and this folder hold the instructions for agents and contributors. When to update them is part of the [verification loop](../AGENTS.md#loop-after-every-edit).
+
+A new file under `docs/` gets a row in [Where to look](../AGENTS.md#where-to-look), phrased by the task it serves ("About to…"), and starts with the line `Routed from [AGENTS.md](../AGENTS.md#where-to-look).`, followed by what it covers.
+
+Some rules are written in several places on purpose, each copy for its own reader. A change to one of them updates all its copies in the same commit:
+
+| Rule | Copies |
+|---|---|
+| Read AGENTS.md before any action | [AGENTS.md](../AGENTS.md), [CLAUDE.md](../CLAUDE.md), [copilot-instructions.md](../.github/copilot-instructions.md) |
+| Enable the git hooks (`git config core.hooksPath .githooks`) | [Setup](#setup), [`pre-commit`](../.githooks/pre-commit), [`commit-msg`](../.githooks/commit-msg) |
+| Commit rules: prefixes, 50 words, no final period, no AI attribution | [Commits](#commits), the header of [`Test-CommitMessage.ps1`](../harness/Test-CommitMessage.ps1), [`commit-msg`](../.githooks/commit-msg) |
+| Changelog subsections and their order | [Changelog](#changelog), the introduction of [CHANGELOG.md](../CHANGELOG.md), rule 11 of [`Test-Consistency.ps1`](../harness/Test-Consistency.ps1) |
+| Read the 💥 Upgrade section before a major version | [README](../README.md#updating), the introduction of [CHANGELOG.md](../CHANGELOG.md) |
 
 ## Releases
 
@@ -77,7 +89,7 @@ Incrementing a number resets the ones after it: `1.4.2` becomes `1.5.0` or `2.0.
 
 ### Changelog
 
-[CHANGELOG.md](../CHANGELOG.md) follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), with an emoji per category so that the content of a release shows at a glance. Every pull request adds its entries under `## [Unreleased]`, in these subsections, each once and in this order:
+[CHANGELOG.md](../CHANGELOG.md) follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), with an emoji per category so that the content of a release shows at a glance. Every pull request adds its entries under `## [Unreleased]`, except Dependabot's and the release pull request, in these subsections, each once and in this order:
 
 | Subsection | Content | Usual commit prefix |
 |---|---|---|
@@ -91,12 +103,12 @@ Incrementing a number resets the ones after it: `1.4.2` becomes `1.5.0` or `2.0.
 | `### 📝 Documentation` | The README or the contributor documentation | `docs` |
 | `### 🧹 Maintenance` | The harness, CI, tests, dependencies, refactoring | `chore`, `build`, `test`, `refactor` |
 
-An entry describes the result for its reader, in one line, not the commits. `Test-Consistency.ps1` checks the format, the subsections and their order, the order of the versions and their dates, the link references and the `💥 Upgrade` section of a major version; the wording of the entries is checked by reading.
+An entry describes the result for its reader, in one line, not the commits. `Test-Consistency.ps1` checks the format, the subsections and their order, the order of the versions and their dates, the link references and the `💥 Upgrade` section of a major version. The presence of an entry and its wording are checked by reading.
 
 ### Release steps
 
 1. **Release pull request**, titled `chore: version <version>`: in `CHANGELOG.md`, rename `## [Unreleased]` to `## [<version>] - <YYYY-MM-DD>`, add an empty `## [Unreleased]` above it, and update the link references at the end of the file (`[Unreleased]` compares `<version>...HEAD`, `[<version>]` compares the previous version with `<version>`).
-2. **Merge it**, then check that the latest run of the `CI` workflow on `main` is green, in the Actions tab of the GitHub repository.
+2. **Merge it**, then check that the latest run of the `CI` workflow on `main` passed, in the Actions tab of the GitHub repository.
 3. **Tag**, never on a working branch: the tag points to the state of `main` that users download.
 
    ```powershell
@@ -106,7 +118,7 @@ An entry describes the result for its reader, in one line, not the commits. `Tes
    git push origin <version>
    ```
 
-4. **Check the release.** Pushing the tag runs the [Release workflow](../.github/workflows/release.yml), which publishes the GitHub Release with the version's changelog section as notes. Check its run, then the release page.
+4. **Check the release.** Pushing the tag runs the [Release workflow](../.github/workflows/release.yml). It checks that the tagged commit is on `main` and that CI passed on it, then publishes the GitHub Release with the version's changelog section as notes. Check its run, then the release page.
 
 A tag published without its GitHub Release, or whose run failed, is published again on demand: `gh workflow run release.yml -f tag=<version>`. That run reads `CHANGELOG.md` from `main`, and fails if started from another branch.
 

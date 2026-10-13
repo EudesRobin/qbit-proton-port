@@ -1,7 +1,7 @@
 #Requires -Version 7.3
 <#
 .SYNOPSIS
-    Runs every offline check of the harness. Exit 0 = all green, 1 = a check is red, 2 = a check could not run.
+    Runs every offline check of the harness. Exit 0 = every check passed, 1 = a check failed, 2 = a check could not run.
 
 .DESCRIPTION
     The single entry point of the Definition of Done's Test step, of the pre-commit hook and of CI.
@@ -29,7 +29,7 @@ $Checks = @(
     ,@('Test-Harness.ps1')
 )
 
-$Verdicts = @{ 0 = 'green'; 1 = 'red'; 2 = 'could not run' }
+$Verdicts = @{ 0 = 'passed'; 1 = 'failed'; 2 = 'could not run' }
 $worst = 0
 $rows = [Collections.Generic.List[string]]::new()
 foreach ($c in $Checks) {
@@ -43,12 +43,12 @@ foreach ($c in $Checks) {
     $seconds = '{0:N1} s' -f $timer.Elapsed.TotalSeconds
     Write-Host "== $name : exit $code, $seconds" -ForegroundColor Cyan
     Stop-GitHubGroup
-    # 1 (red) outranks 2 (could not run), which outranks 0 (green).
+    # 1 (failed) outranks 2 (could not run), which outranks 0 (passed).
     if ($code -eq 1 -or ($code -ne 0 -and $worst -ne 1)) { $worst = if ($code -eq 2) { 2 } else { 1 } }
     $rows.Add("| ``$name`` | $($Verdicts[$code] ?? "exit $code") | $seconds |")
 }
 
-$verdict = @{ 0 = 'GREEN: all checks passed.'; 1 = 'RED: a check failed.'; 2 = 'INCOMPLETE: a check could not run.' }[$worst]
+$verdict = @{ 0 = 'PASSED: every check.'; 1 = 'FAILED: at least one check.'; 2 = 'INCOMPLETE: a check could not run.' }[$worst]
 Add-GitHubSummary (@('## Harness', '', '| Check | Result | Duration |', '|---|---|---|') + $rows + @('', "**$verdict**"))
 Write-Host $verdict -ForegroundColor (@{ 0 = 'Green'; 1 = 'Red'; 2 = 'Yellow' }[$worst])
 exit $worst

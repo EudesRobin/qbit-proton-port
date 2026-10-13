@@ -1,8 +1,8 @@
 #Requires -Version 7.3
 <#
 .SYNOPSIS
-    Tests the harness checks: each rule is seen red on a deliberately broken case,
-    and the real repository stays green. Exit 0 = all cases pass, 1 = a case failed.
+    Tests the harness checks: each rule fails on a case built to break it,
+    and the real repository passes. Exit 0 = all cases pass, 1 = a case failed.
 
 .DESCRIPTION
     A case runs one check against a target, then expects an exit code and a message fragment:
@@ -15,7 +15,7 @@
     broken case here.
 
     Literals that look private (addresses, user paths, fingerprints, keys) are built by concatenation,
-    so that Test-Secrets.ps1 stays green on this file.
+    so that Test-Secrets.ps1 passes on this file.
 #>
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -120,8 +120,8 @@ $Fence = '```'
 
 $Cases = @(
     # --- Test-Consistency.ps1
-    Case 'consistency: real repository' $C real $null 0 'GREEN'
-    Case 'consistency: valid anchors' $C copy (Add-Text 'README.md' "`n[a](#troubleshooting) [b](AGENTS.md#harness--verification-loop)`n[c]: AGENTS.md#layout") 0 'GREEN'
+    Case 'consistency: real repository' $C real $null 0 'PASSED'
+    Case 'consistency: valid anchors' $C copy (Add-Text 'README.md' "`n[a](#troubleshooting) [b](AGENTS.md#definition-of-done--verification-loop)`n[c]: AGENTS.md#layout") 0 'PASSED'
     Case 'consistency: parse error' $C copy (Add-Text $Script "`nfunction Broken {") 1 '[parse]'
     Case 'consistency: undocumented parameter' $C copy (Edit-Text $Script '[switch] $ShowConfig' "[switch] `$ShowConfig,`n    [switch] `$UndocumentedSwitch") 1 '[params] parameter -UndocumentedSwitch'
     Case 'consistency: undocumented setting' $C copy (Add-Text '.env.example' 'UNDOCUMENTED_SETTING=1') 1 '[settings] setting UNDOCUMENTED_SETTING'
@@ -147,32 +147,32 @@ $Cases = @(
     Case 'consistency: changelog versions not decreasing' $C copy (Steps (Edit-Text 'CHANGELOG.md' '## [Unreleased]' "## [Unreleased]`n`n## [0.0.1] - 2099-01-01`n`n### 🐛 Fixed`n`n- x"), (Add-Text 'CHANGELOG.md' '[0.0.1]: https://example.com')) 1 'versions must be in decreasing order ('
     Case 'consistency: changelog dates increasing' $C copy (Steps (Edit-Text 'CHANGELOG.md' '## [Unreleased]' "## [Unreleased]`n`n## [99.0.0] - 2000-01-01`n`n### 💥 Upgrade`n`n- x"), (Add-Text 'CHANGELOG.md' '[99.0.0]: https://example.com')) 1 'dates must not increase'
     Case 'consistency: changelog major without Upgrade' $C copy (Steps (Edit-Text 'CHANGELOG.md' '## [Unreleased]' "## [Unreleased]`n`n## [99.0.0] - 2099-01-01`n`n### 🔥 Removed`n`n- x"), (Add-Text 'CHANGELOG.md' '[99.0.0]: https://example.com')) 1 '99.0.0 raises MAJOR and has no ### 💥 Upgrade'
-    Case 'consistency: changelog major with Upgrade' $C copy (Steps (Edit-Text 'CHANGELOG.md' '## [Unreleased]' "## [Unreleased]`n`n## [99.0.0] - 2099-01-01`n`n### 💥 Upgrade`n`n- x`n`n### 🔥 Removed`n`n- x"), (Add-Text 'CHANGELOG.md' '[99.0.0]: https://example.com')) 0 'GREEN'
+    Case 'consistency: changelog major with Upgrade' $C copy (Steps (Edit-Text 'CHANGELOG.md' '## [Unreleased]' "## [Unreleased]`n`n## [99.0.0] - 2099-01-01`n`n### 💥 Upgrade`n`n- x`n`n### 🔥 Removed`n`n- x"), (Add-Text 'CHANGELOG.md' '[99.0.0]: https://example.com')) 0 'PASSED'
     Case 'consistency: changelog subsections out of order' $C copy (Edit-Text 'CHANGELOG.md' '### 🚀 Added' "### 🐛 Fixed`n`n- x`n`n### 🚀 Added") 1 "'### 🚀 Added' must come before '### 🐛 Fixed'"
     Case 'consistency: changelog subsection twice' $C copy (Edit-Text 'CHANGELOG.md' '### 🚀 Added' "### 🚀 Added`n`n- x`n`n### 🚀 Added") 1 "'### 🚀 Added' must come before '### 🚀 Added'"
 
     # --- Test-Workflows.ps1 (zizmor)
-    Case 'workflows: real repository' $W real $null 0 'GREEN' -Requires $HasZizmor
+    Case 'workflows: real repository' $W real $null 0 'PASSED' -Requires $HasZizmor
     Case 'workflows: checkout keeps the token' $W copy (Edit-Text '.github/workflows/validate.yml' 'persist-credentials: false' '') 1 '[artipacked] .github/workflows/validate.yml:' -Requires $HasZizmor
     Case 'workflows: expression expanded in a script' $W copy (Edit-Text '.github/workflows/validate.yml' 'run: .\harness\Invoke-Harness.ps1 -CommitRange $env:COMMIT_RANGE' 'run: .\harness\Invoke-Harness.ps1 -CommitRange ${{ github.head_ref }}') 1 '[template-injection]' -Requires $HasZizmor
     Case 'workflows: annotation in CI' $W copy (Edit-Text '.github/workflows/validate.yml' 'persist-credentials: false' '') 1 '::error file=.github/workflows/validate.yml,line=' -Env @{ GITHUB_ACTIONS = 'true' } -Requires $HasZizmor
 
     # --- Test-Lint.ps1 (PSScriptAnalyzer)
-    Case 'lint: real repository' $L real $null 0 'GREEN' -Requires $HasAnalyzer
+    Case 'lint: real repository' $L real $null 0 'PASSED' -Requires $HasAnalyzer
     Case 'lint: Invoke-Expression' $L copy (Add-Text $Script "`nInvoke-Expression `$env:QBIT_PATH") 1 '[PSAvoidUsingInvokeExpression] Sync-QbitProtonPort.ps1:' -Requires $HasAnalyzer
     Case 'lint: empty catch block' $L copy (Add-Text 'harness/Test-Secrets.ps1' "`ntry { 1 } catch { }") 1 '[PSAvoidUsingEmptyCatchBlock] harness/Test-Secrets.ps1:' -Requires $HasAnalyzer
     Case 'lint: suppression that matches nothing' $L copy (Edit-Text $Script "SuppressMessageAttribute('PSAvoidOverwritingBuiltInCmdlets', ''," "SuppressMessageAttribute('PSAvoidOverwritingBuiltInCmdlets', 'Nothing',") 2 'PSScriptAnalyzer failed' -Requires $HasAnalyzer
     Case 'lint: annotation in CI' $L copy (Add-Text $Script "`nInvoke-Expression `$env:QBIT_PATH") 1 '::error file=Sync-QbitProtonPort.ps1,line=' -Env @{ GITHUB_ACTIONS = 'true' } -Requires $HasAnalyzer
 
     # --- Test-Unit.ps1 (Pester)
-    Case 'unit: real repository' $U real $null 0 'GREEN' -Requires $HasPester
-    Case 'unit: port added in the wrong section' $U copy (Edit-Text $Script '$lines.Insert($sectionEnd + 1, "Session\Port=$Port")' '$lines.Add("Session\Port=$Port")') 1 'RED: 1 test(s) failed' -Requires $HasPester
-    Case 'unit: stale port accepted' $U copy (Edit-Text $Script 'if ($age -gt $MaxPortAge) {' 'if ($false) {') 1 'RED: 1 test(s) failed' -Requires $HasPester
-    Case 'unit: main block run when dot-sourced' $U copy (Edit-Text $Script "if (`$MyInvocation.InvocationName -eq '.') { return }" '') 1 'RED: 1 test(s) failed' -Requires $HasPester
+    Case 'unit: real repository' $U real $null 0 'PASSED' -Requires $HasPester
+    Case 'unit: port added in the wrong section' $U copy (Edit-Text $Script '$lines.Insert($sectionEnd + 1, "Session\Port=$Port")' '$lines.Add("Session\Port=$Port")') 1 'FAILED: 1 test(s) failed' -Requires $HasPester
+    Case 'unit: stale port accepted' $U copy (Edit-Text $Script 'if ($age -gt $MaxPortAge) {' 'if ($false) {') 1 'FAILED: 1 test(s) failed' -Requires $HasPester
+    Case 'unit: main block run when dot-sourced' $U copy (Edit-Text $Script "if (`$MyInvocation.InvocationName -eq '.') { return }" '') 1 'FAILED: 1 test(s) failed' -Requires $HasPester
     Case 'unit: annotation in CI' $U copy (Edit-Text $Script 'if ($age -gt $MaxPortAge) {' 'if ($false) {') 1 '::error file=tests/Sync-QbitProtonPort.Tests.ps1,line=' -Env @{ GITHUB_ACTIONS = 'true' } -Requires $HasPester
 
     # --- Test-Secrets.ps1
-    Case 'secrets: real repository' $S real $null 0 'GREEN'
+    Case 'secrets: real repository' $S real $null 0 'PASSED'
     Case 'secrets: settings file' $S copy (Add-Text '.env' 'QBIT_API_PORT=1') 1 '[files] .env'
     Case 'secrets: log file' $S copy (Add-Text 'logs/sync.log' 'INFO') 1 '[files] logs/sync.log'
     Case 'secrets: certificate key file' $S copy (Add-Text 'ssl/webui.key' 'x') 1 '[files] ssl/webui.key'
@@ -180,13 +180,13 @@ $Cases = @(
     Case 'secrets: fingerprint' $S copy (Add-Text 'README.md' ('AB' * 32)) 1 '[fingerprint] README.md'
     Case 'secrets: fingerprint with colons' $S copy (Add-Text 'README.md' ((@('AB') * 32) -join ':')) 1 '[fingerprint] README.md'
     Case 'secrets: user folder path' $S copy (Add-Text 'README.md' $UserPath) 1 '[paths] README.md'
-    Case 'secrets: path placeholder allowed' $S copy (Add-Text 'README.md' 'C:\Users\<you>\x and %LOCALAPPDATA%') 0 'GREEN'
+    Case 'secrets: path placeholder allowed' $S copy (Add-Text 'README.md' 'C:\Users\<you>\x and %LOCALAPPDATA%') 0 'PASSED'
     Case 'secrets: IPv4 address' $S copy (Add-Text 'AGENTS.md' "WebUI on $Ip") 1 '[ip] AGENTS.md'
     Case 'secrets: annotation without the value' $S copy (Add-Text 'AGENTS.md' "WebUI on $Ip") 1 '::error file=AGENTS.md,line=' -Env @{ GITHUB_ACTIONS = 'true' } -Absent $Ip
     Case 'secrets: local API port' $S copy (Add-Text 'README.md' 'Port 45678 here.') 1 '[local] README.md' -Data @{ '.env' = "QBIT_API_PORT=45678`nQBIT_CERT_SHA256=" }
     Case 'secrets: staged settings file' $S copy (Stage (Add-Text '.env' 'QBIT_API_PORT=1')) 1 '[files] .env is staged' @('-Root', '{root}', '-Staged')
     Case 'secrets: staged IPv4 address' $S copy (Stage (Add-Text 'README.md' "`nWebUI on $Ip")) 1 '[ip] README.md' @('-Root', '{root}', '-Staged')
-    Case 'secrets: staged clean change' $S copy (Stage (Add-Text 'README.md' "`nA harmless line.")) 0 'GREEN' @('-Root', '{root}', '-Staged')
+    Case 'secrets: staged clean change' $S copy (Stage (Add-Text 'README.md' "`nA harmless line.")) 0 'PASSED' @('-Root', '{root}', '-Staged')
 
     # --- Test-CommitMessage.ps1
     Case 'commit: valid message' $M empty (Message "fix: corrige la lecture du port`n`nLe journal tourne plus tôt que prévu.") 0 '' $MsgArgs
@@ -200,10 +200,10 @@ $Cases = @(
     Case 'commit: Co-Authored-By an AI' $M empty (Message "fix: x`n`nCo-Authored-By: Claude <noreply@anthropic.com>") 1 'AI attribution' $MsgArgs
     Case 'commit: generated with an AI' $M empty (Message "fix: x`n`nGenerated with Claude Code") 1 'AI attribution' $MsgArgs
     Case 'commit: path by position, as the hook passes it' $M empty (Message 'corrige la lecture du port') 1 'must start with' @('{root}/MSG')
-    Case 'commit range: valid commits' $M empty (Commits 'feat: ajoute un réglage', 'fix: corrige la lecture') 0 'GREEN: 2 commit(s)' $RangeArgs
+    Case 'commit range: valid commits' $M empty (Commits 'feat: ajoute un réglage', 'fix: corrige la lecture') 0 'PASSED: 2 commit(s)' $RangeArgs
     Case 'commit range: bad message' $M empty (Commits 'feat: ajoute un réglage', 'corrige la lecture') 1 'must start with' $RangeArgs
-    Case 'commit range: merge commit not checked' $M empty (Commits 'feat: ajoute un réglage' -Merge) 0 'GREEN: 2 commit(s)' $RangeArgs
-    Case 'commit range: Dependabot commit not checked' $M empty (Commits 'feat: ajoute un réglage' -Dependabot "Bump x from 1.0.0 to 1.0.1.`n`n$('notes ' * 60)") 0 'GREEN: 1 commit(s)' $RangeArgs
+    Case 'commit range: merge commit not checked' $M empty (Commits 'feat: ajoute un réglage' -Merge) 0 'PASSED: 2 commit(s)' $RangeArgs
+    Case 'commit range: Dependabot commit not checked' $M empty (Commits 'feat: ajoute un réglage' -Dependabot "Bump x from 1.0.0 to 1.0.1.`n`n$('notes ' * 60)") 0 'PASSED: 1 commit(s)' $RangeArgs
     Case 'commit range: unknown range' $M empty (Commits 'feat: ajoute un réglage') 2 'Cannot read the commits' @('-Range', 'nowhere..HEAD', '-Root', '{root}')
     Case 'commit range: annotation in CI' $M empty (Commits 'corrige la lecture') 1 '::error title=commit ' $RangeArgs -Env @{ GITHUB_ACTIONS = 'true' }
 )
@@ -247,6 +247,6 @@ foreach ($c in $Cases) {
     }
 }
 
-if ($failed) { Write-Host "RED: $failed of $($Cases.Count) case(s) failed." -ForegroundColor Red; exit 1 }
-Write-Host "GREEN: $($Cases.Count - $skipped) cases$(if ($skipped) { ", $skipped skipped" })." -ForegroundColor Green
+if ($failed) { Write-Host "FAILED: $failed of $($Cases.Count) case(s) failed." -ForegroundColor Red; exit 1 }
+Write-Host "PASSED: $($Cases.Count - $skipped) cases$(if ($skipped) { ", $skipped skipped" })." -ForegroundColor Green
 exit 0

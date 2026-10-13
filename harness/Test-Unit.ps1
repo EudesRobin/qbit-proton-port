@@ -1,7 +1,7 @@
 #Requires -Version 7.3
 <#
 .SYNOPSIS
-    Runs the Pester tests of tests/. Exit 0 = green, 1 = red, 2 = could not run.
+    Runs the Pester tests of tests/. Exit 0 = passed, 1 = failed, 2 = could not run.
 
 .DESCRIPTION
     The tests cover the functions of Sync-QbitProtonPort.ps1 that don't need Proton VPN or qBittorrent:
@@ -39,8 +39,8 @@ foreach ($test in $result.Failed) {
 }
 
 if ($result.Result -ne 'Passed') {
-    Write-Host "RED: $($result.FailedCount) test(s) failed, $($result.FailedBlocksCount) block(s) failed to run." -ForegroundColor Red
+    Write-Host "FAILED: $($result.FailedCount) test(s) failed, $($result.FailedBlocksCount) block(s) failed to run." -ForegroundColor Red
     exit 1
 }
-Write-Host "GREEN: $($result.PassedCount) test(s) passed with Pester $($pester.Version)." -ForegroundColor Green
+Write-Host "PASSED: $($result.PassedCount) test(s) passed with Pester $($pester.Version)." -ForegroundColor Green
 exit 0

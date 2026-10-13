@@ -4,6 +4,16 @@ The changes of each release, sorted by category: 💥 upgrade steps, 🚀 new fe
 
 ## [Unreleased]
 
+### 📝 Documentation
+
+- Contributor documentation aligned with ia-tools: Definition of Done named as such and extended to workflow changes, changelog rule scoped, list of what no check covers, rules duplicated on purpose, and the rule for adding a document under `docs/`.
+- Commit messages are written in English.
+
+### 🧹 Maintenance
+
+- The harness reports `PASSED` or `FAILED` instead of `GREEN` or `RED`, and the documentation says that a check passes or fails.
+- The Release workflow publishes a version only if its tag points to a commit of `main` on which CI passed.
+
 ## [1.0.2] - 2026-10-12
 
 ### 🧹 Maintenance

@@ -37,7 +37,7 @@ No row fits the task, or two documents disagree: say so to the user before actin
 | `.githooks/` | `pre-commit` (Invoke-Harness, then `Test-Secrets -Staged`) and `commit-msg` (Test-CommitMessage) |
 | `.gitattributes` | Keeps the git hooks in LF, as `sh` requires |
 | `.github/workflows/validate.yml` | CI workflow, job `validate` (the check required on `main`): runs `Invoke-Harness.ps1` on Windows for every push to `main`, every pull request and on demand |
-| `.github/workflows/release.yml` | Publishes the GitHub Release of a pushed version tag, or on demand, with its changelog section as notes |
+| `.github/workflows/release.yml` | Publishes the GitHub Release of a pushed version tag, or on demand, with its changelog section as notes, once the tagged commit is on `main` and passed CI |
 | `.github/dependabot.yml` | Weekly pull requests updating the pinned GitHub Actions and the Python tools of `harness/requirements.txt`, for releases at least 30 days old. Security updates, enabled in the repository settings, are proposed without that delay |
 | `.idea/` | Shared IDE settings. `workspace.xml` and `misc.xml` (local JDK) are ignored |
 
@@ -52,15 +52,15 @@ Runtime files live **outside the repository**, in `%LOCALAPPDATA%\qbit-proton-po
 - Keep the "fail closed" behaviour: no VPN or no fresh port means an error and qBittorrent is not launched. Keep the binding to the VPN interface.
 - Don't disconnect the VPN, close qBittorrent or kill its process without asking the user. Killing qBittorrent can lose its settings and resume data.
 
-## Harness — verification loop
+## Definition of Done — verification loop
 
 How to prove a change works in **this** project:
 
 - **Run**: `.\Sync-QbitProtonPort.ps1 -SyncOnly` against the real Proton VPN and qBittorrent. Also run it without `-SyncOnly` when the launch path changed.
-- **Test**: `.\harness\Invoke-Harness.ps1`. It runs every offline check. Exit 0 = green, 1 = red, 2 = a check could not run. CI runs it too, without Proton VPN or qBittorrent: a green CI doesn't replace **Run**.
-- **Verify**: read the actual output and exit code. See each added or modified check fail once on a broken case, and the [failure cases](docs/HARNESS.md#failure-cases-to-see-red) red when the path they cover changed. Ask the user to run the [scenarios that need them](docs/HARNESS.md#scenarios-that-need-the-user) when that path changed.
+- **Test**: `.\harness\Invoke-Harness.ps1`. It runs every offline check. Exit code 0 means every check passed, 1 that a check failed, 2 that a check could not run. CI runs it too, without Proton VPN or qBittorrent: CI passing doesn't replace **Run**.
+- **Verify**: read the actual output and exit code. See each added or modified check fail once on a broken case, and run the [failure cases](docs/HARNESS.md#failure-cases) when the path they cover changed. Ask the user to run the [scenarios that need them](docs/HARNESS.md#scenarios-that-need-the-user) when that path changed.
 
-A change is not done until **Test** is green and **Verify** has been observed on the real flow. Never conclude "done" just because there was no error, or because commands finished without anyone looking at the result.
+A change is not done until **Test** passes and **Verify** has been observed on the real flow. A change to `.github/workflows/` is not done either until its CI run has been seen passing on the pull request. Never conclude "done" just because there was no error, or because commands finished without anyone looking at the result.
 
 ### Loop after every edit
 
@@ -69,7 +69,7 @@ After **each** edit, before building anything on top of it, proposing a commit, 
 1. Run `.\harness\Invoke-Harness.ps1`.
 2. `Sync-QbitProtonPort.ps1` changed: run it for real (**Run** above), and read the output and exit code.
 3. A behaviour, parameter, setting, message or file location changed: update the README in the same commit (usage, settings, troubleshooting, how it works, security), and this file or `docs/` when the layout, an external contract or a security rule changed. Reread the sections the diff touches, fix any statement that became wrong, and document any new behaviour that is missing: `Test-Consistency.ps1` covers only the mechanical part.
-4. Every change, whatever its kind: add its entry under `[Unreleased]` in `CHANGELOG.md`, in the [category](docs/CONTRIBUTING.md#changelog) that fits.
-5. Red, or a statement became wrong → read the cause, fix, and start again at 1.
+4. Every change, whatever its kind, outside Dependabot's pull requests and the release pull request: add its entry under `[Unreleased]` in `CHANGELOG.md`, in the [category](docs/CONTRIBUTING.md#changelog) that fits.
+5. If a check fails or a statement became wrong, read the cause, fix it, and start again at 1.
 
-**At most 3 attempts.** If the loop is still red after the third fix, stop editing. Reply with a concise report giving, for each attempt, the change made and the resulting error. Then ask the user what to do next. Never weaken or skip a check to turn it green.
+**At most 3 attempts.** If a check still fails after the third fix, stop editing. Reply with a concise report giving, for each attempt, the change made and the resulting error. Then ask the user what to do next. Never weaken or skip a check to make it pass.

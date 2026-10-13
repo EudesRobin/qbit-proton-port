@@ -1,7 +1,7 @@
 #Requires -Version 7.3
 <#
 .SYNOPSIS
-    Checks commit messages against the commit rules of docs/CONTRIBUTING.md. Exit 0 = green, 1 = red, 2 = could not run.
+    Checks commit messages against the commit rules of docs/CONTRIBUTING.md. Exit 0 = passed, 1 = failed, 2 = could not run.
 
 .DESCRIPTION
     Rules:
@@ -79,6 +79,6 @@ foreach ($sha in $commits) {
         Write-GitHubError "commit $short" $e
     }
 }
-if ($failed) { Write-Host "RED: $failed of $($commits.Count) commit(s) break the commit rules." -ForegroundColor Red; exit 1 }
-Write-Host "GREEN: $($commits.Count) commit(s) checked in $Range." -ForegroundColor Green
+if ($failed) { Write-Host "FAILED: $failed of $($commits.Count) commit(s) break the commit rules." -ForegroundColor Red; exit 1 }
+Write-Host "PASSED: $($commits.Count) commit(s) checked in $Range." -ForegroundColor Green
 exit 0

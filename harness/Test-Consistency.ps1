@@ -1,7 +1,7 @@
 #Requires -Version 7.3
 <#
 .SYNOPSIS
-    Checks that Sync-QbitProtonPort.ps1, its settings template and the Markdown files agree. Exit 0 = green, 1 = red.
+    Checks that Sync-QbitProtonPort.ps1, its settings template and the Markdown files agree. Exit 0 = passed, 1 = failed.
 
 .DESCRIPTION
     Rules:
@@ -300,9 +300,9 @@ else {
 # --- Result ---------------------------------------------------------------------------------
 if ($Failures.Count) {
     $Failures | ForEach-Object { Write-Host $_ -ForegroundColor Red }
-    Write-Host "RED: $($Failures.Count) problem(s)." -ForegroundColor Red
+    Write-Host "FAILED: $($Failures.Count) problem(s)." -ForegroundColor Red
     exit 1
 }
-Write-Host ("GREEN: {0} parameters, {1} messages, {2} troubleshooting fragments, {3} Markdown files, {4} releases checked." -f
+Write-Host ("PASSED: {0} parameters, {1} messages, {2} troubleshooting fragments, {3} Markdown files, {4} releases checked." -f
     $ast.ParamBlock.Parameters.Count, $messages.Count, @($fragments).Count, @($mdFiles).Count, $releases.Count) -ForegroundColor Green
 exit 0

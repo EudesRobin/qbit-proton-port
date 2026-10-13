@@ -1,7 +1,7 @@
 #Requires -Version 7.3
 <#
 .SYNOPSIS
-    Checks that no runtime file, secret or private value would be published. Exit 0 = green, 1 = red.
+    Checks that no runtime file, secret or private value would be published. Exit 0 = passed, 1 = failed.
 
 .DESCRIPTION
     Rules:
@@ -102,9 +102,9 @@ if ($Staged) {
 
 if ($Failures.Count) {
     $Failures | ForEach-Object { Write-Host $_ -ForegroundColor Red }
-    Write-Host "RED: $($Failures.Count) problem(s)." -ForegroundColor Red
+    Write-Host "FAILED: $($Failures.Count) problem(s)." -ForegroundColor Red
     exit 1
 }
-Write-Host ("GREEN: {0} file(s) checked{1}." -f $files.Count,
+Write-Host ("PASSED: {0} file(s) checked{1}." -f $files.Count,
     $(if ($local.Count) { ", with the local .env values" } else { '' })) -ForegroundColor Green
 exit 0

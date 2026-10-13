@@ -22,7 +22,7 @@ Install-PSResource PSScriptAnalyzer -Version 1.25.0 -Scope CurrentUser -TrustRep
 
 ## PowerShell code
 
-`Test-Lint.ps1` runs PSScriptAnalyzer on every PowerShell file, and every error or warning is red. A rule that doesn't fit the whole repository is excluded in [`PSScriptAnalyzerSettings.psd1`](../PSScriptAnalyzerSettings.psd1), with the reason in a comment. A single finding that is wrong where it occurs is suppressed there, with a `[Diagnostics.CodeAnalysis.SuppressMessageAttribute()]` and its `Justification`. Never exclude or suppress a finding only to turn the check green.
+`Test-Lint.ps1` runs PSScriptAnalyzer on every PowerShell file, and every error or warning fails it. A rule that doesn't fit the whole repository is excluded in [`PSScriptAnalyzerSettings.psd1`](../PSScriptAnalyzerSettings.psd1), with the reason in a comment. A single finding that is wrong where it occurs is suppressed there, with a `[Diagnostics.CodeAnalysis.SuppressMessageAttribute()]` and its `Justification`. Never exclude or suppress a finding only to make the check pass.
 
 A missing tool makes its check exit 2 ("could not run"): the pre-commit hook lets the commit through with a warning, but CI installs every tool and stays strict.
 
@@ -40,7 +40,7 @@ The [commit-msg hook](../.githooks/commit-msg) checks all of this except the lan
 
 ## Pull requests
 
-- `main` is protected: every change goes through a branch and a pull request, merged once the `validate` check is green on a branch up to date with `main`. A branch behind `main` is updated first (*Update branch* on the pull request), which runs CI again on the result.
+- `main` is protected: every change goes through a branch and a pull request, merged once the `validate` check passes on a branch up to date with `main`. A branch behind `main` is updated first (*Update branch* on the pull request), which runs CI again on the result.
 - Dependabot's pull requests are merged with a merge commit, like the others: its commits keep their English messages and release notes, which the commit checks skip.
 
 No hook checks a pull request description, and a squash message written on GitHub is only checked once on `main`, by CI: apply the commit rules by hand.
@@ -53,7 +53,7 @@ The protection of `main` requires one check, the `validate` job of the [CI workf
 
 A value from the event (branch name, title, SHA) reaches a `run:` script through `env:`, never as `${{ }}` inside the script: expanded there, it would be code.
 
-`Test-Workflows.ps1` audits the workflows with [zizmor](https://docs.zizmor.sh/), and every finding is red. A finding accepted on purpose is ignored on its line with `# zizmor: ignore[<audit>]`, followed by the reason. The version of zizmor is pinned in [`harness/requirements.txt`](../harness/requirements.txt), which Dependabot updates like the actions.
+`Test-Workflows.ps1` audits the workflows with [zizmor](https://docs.zizmor.sh/), and every finding fails it. A finding accepted on purpose is ignored on its line with `# zizmor: ignore[<audit>]`, followed by the reason. The version of zizmor is pinned in [`harness/requirements.txt`](../harness/requirements.txt), which Dependabot updates like the actions.
 
 ## Documentation
 
@@ -108,7 +108,7 @@ An entry describes the result for its reader, in one line, not the commits. `Tes
 ### Release steps
 
 1. **Release pull request**, titled `chore: version <version>`: in `CHANGELOG.md`, rename `## [Unreleased]` to `## [<version>] - <YYYY-MM-DD>`, add an empty `## [Unreleased]` above it, and update the link references at the end of the file (`[Unreleased]` compares `<version>...HEAD`, `[<version>]` compares the previous version with `<version>`).
-2. **Merge it**, then check that the latest run of the `CI` workflow on `main` is green, in the Actions tab of the GitHub repository.
+2. **Merge it**, then check that the latest run of the `CI` workflow on `main` passed, in the Actions tab of the GitHub repository.
 3. **Tag**, never on a working branch: the tag points to the state of `main` that users download.
 
    ```powershell

@@ -121,7 +121,7 @@ $Fence = '```'
 $Cases = @(
     # --- Test-Consistency.ps1
     Case 'consistency: real repository' $C real $null 0 'GREEN'
-    Case 'consistency: valid anchors' $C copy (Add-Text 'README.md' "`n[a](#troubleshooting) [b](AGENTS.md#harness--verification-loop)`n[c]: AGENTS.md#layout") 0 'GREEN'
+    Case 'consistency: valid anchors' $C copy (Add-Text 'README.md' "`n[a](#troubleshooting) [b](AGENTS.md#definition-of-done--verification-loop)`n[c]: AGENTS.md#layout") 0 'GREEN'
     Case 'consistency: parse error' $C copy (Add-Text $Script "`nfunction Broken {") 1 '[parse]'
     Case 'consistency: undocumented parameter' $C copy (Edit-Text $Script '[switch] $ShowConfig' "[switch] `$ShowConfig,`n    [switch] `$UndocumentedSwitch") 1 '[params] parameter -UndocumentedSwitch'
     Case 'consistency: undocumented setting' $C copy (Add-Text '.env.example' 'UNDOCUMENTED_SETTING=1') 1 '[settings] setting UNDOCUMENTED_SETTING'

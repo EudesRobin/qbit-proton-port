@@ -61,6 +61,18 @@ Documentation is in English. It describes the result, not the process.
 
 The README is the user's documentation; [AGENTS.md](../AGENTS.md) and this folder hold the instructions for agents and contributors. When to update them is part of the [verification loop](../AGENTS.md#loop-after-every-edit).
 
+A new file under `docs/` gets a row in [Where to look](../AGENTS.md#where-to-look), phrased by the task it serves ("About to…"), and starts with the line `Routed from [AGENTS.md](../AGENTS.md#where-to-look).`, followed by what it covers.
+
+Some rules are written in several places on purpose, each copy for its own reader. A change to one of them updates all its copies in the same commit:
+
+| Rule | Copies |
+|---|---|
+| Read AGENTS.md before any action | [AGENTS.md](../AGENTS.md), [CLAUDE.md](../CLAUDE.md), [copilot-instructions.md](../.github/copilot-instructions.md) |
+| Enable the git hooks (`git config core.hooksPath .githooks`) | [Setup](#setup), [`pre-commit`](../.githooks/pre-commit), [`commit-msg`](../.githooks/commit-msg) |
+| Commit rules: prefixes, 50 words, no final period, no AI attribution | [Commits](#commits), the header of [`Test-CommitMessage.ps1`](../harness/Test-CommitMessage.ps1), [`commit-msg`](../.githooks/commit-msg) |
+| Changelog subsections and their order | [Changelog](#changelog), the introduction of [CHANGELOG.md](../CHANGELOG.md), rule 11 of [`Test-Consistency.ps1`](../harness/Test-Consistency.ps1) |
+| Read the 💥 Upgrade section before a major version | [README](../README.md#updating), the introduction of [CHANGELOG.md](../CHANGELOG.md) |
+
 ## Releases
 
 A release is an annotated git tag on a commit of `main`, published as a GitHub Release whose notes are the version's section of [CHANGELOG.md](../CHANGELOG.md). The tag defines the version: besides it, only the changelog heading written in the release pull request names it.
@@ -77,7 +89,7 @@ Incrementing a number resets the ones after it: `1.4.2` becomes `1.5.0` or `2.0.
 
 ### Changelog
 
-[CHANGELOG.md](../CHANGELOG.md) follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), with an emoji per category so that the content of a release shows at a glance. Every pull request adds its entries under `## [Unreleased]`, in these subsections, each once and in this order:
+[CHANGELOG.md](../CHANGELOG.md) follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), with an emoji per category so that the content of a release shows at a glance. Every pull request adds its entries under `## [Unreleased]`, except Dependabot's and the release pull request, in these subsections, each once and in this order:
 
 | Subsection | Content | Usual commit prefix |
 |---|---|---|
@@ -91,7 +103,7 @@ Incrementing a number resets the ones after it: `1.4.2` becomes `1.5.0` or `2.0.
 | `### 📝 Documentation` | The README or the contributor documentation | `docs` |
 | `### 🧹 Maintenance` | The harness, CI, tests, dependencies, refactoring | `chore`, `build`, `test`, `refactor` |
 
-An entry describes the result for its reader, in one line, not the commits. `Test-Consistency.ps1` checks the format, the subsections and their order, the order of the versions and their dates, the link references and the `💥 Upgrade` section of a major version; the wording of the entries is checked by reading.
+An entry describes the result for its reader, in one line, not the commits. `Test-Consistency.ps1` checks the format, the subsections and their order, the order of the versions and their dates, the link references and the `💥 Upgrade` section of a major version. The presence of an entry and its wording are checked by reading.
 
 ### Release steps
 

@@ -4,6 +4,10 @@ The changes of each release, sorted by category: 💥 upgrade steps, 🚀 new fe
 
 ## [Unreleased]
 
+### 📝 Documentation
+
+- Contributor documentation aligned with ia-tools: Definition of Done named as such and extended to workflow changes, changelog rule scoped, list of what no check covers, rules duplicated on purpose, and the rule for adding a document under `docs/`.
+
 ## [1.0.2] - 2026-10-12
 
 ### 🧹 Maintenance

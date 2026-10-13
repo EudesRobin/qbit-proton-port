@@ -1,6 +1,6 @@
 # Harness — checks and failure cases
 
-Routed from [AGENTS.md](../AGENTS.md#where-to-look), which holds the [verification loop](../AGENTS.md#harness--verification-loop) and the Definition of Done.
+Routed from [AGENTS.md](../AGENTS.md#where-to-look), which holds the [Definition of Done and its verification loop](../AGENTS.md#definition-of-done--verification-loop).
 
 ## Scripts
 
@@ -26,6 +26,14 @@ A troubleshooting row of the README quotes the fixed part of a message in backti
 `Test-Harness.ps1` runs each check against a temporary copy of the repository broken on purpose, and expects it red with a given message; it also expects the real repository green. A rule added to a check isn't done until its broken case is in `Test-Harness.ps1` and was seen failing against the check without the rule. A change to a function covered by [`tests/`](../tests/Sync-QbitProtonPort.Tests.ps1) updates its tests in the same commit, and a new behaviour of such a function gets a test seen failing first. Each test points every path into Pester's `TestDrive` and mocks `Write-Log`: a test never touches the user's real files.
 
 A case whose check needs a missing tool (such as zizmor) is skipped and counted as such; the check itself then exits 2 in `Invoke-Harness.ps1`.
+
+No check covers the following, which is applied by hand:
+
+- the Definition of Done itself: that **Run** was done and its output read, that an added check was seen failing, that CI was seen green on a pull request changing a workflow;
+- the README beyond its mechanical part: a statement that became wrong, a behaviour not documented;
+- the presence of a changelog entry, and the wording of the entries;
+- the language and the author email of a commit, and the pull request description (see [Contributing](CONTRIBUTING.md#commits));
+- the API key itself in the staged diff (see [Before any commit](#before-any-commit)).
 
 ## In CI
 

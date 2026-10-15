@@ -10,7 +10,7 @@ The security rules and the verification loop below apply to every task. Before a
 
 | About to… | Read first |
 |---|---|
-| Change or diagnose how the script reads the Proton VPN log, edits `qBittorrent.ini`, calls the Web API or detects a process | [External contracts](docs/EXTERNAL-CONTRACTS.md) |
+| Change or diagnose how the script reads the Proton VPN log, edits `qBittorrent.ini`, calls the Web API, detects a process or locates `pwsh.exe` | [External contracts](docs/EXTERNAL-CONTRACTS.md) |
 | Add or change a harness check, a unit test or a README troubleshooting row, test a failure case, or commit | [Harness](docs/HARNESS.md) |
 | Write or edit documentation | [Contributing: documentation](docs/CONTRIBUTING.md#documentation) |
 | Exclude or suppress a PSScriptAnalyzer finding | [Contributing: PowerShell code](docs/CONTRIBUTING.md#powershell-code) |
@@ -25,7 +25,7 @@ No row fits the task, or two documents disagree: say so to the user before actin
 
 | Path | Role |
 |---|---|
-| `Sync-QbitProtonPort.ps1` | The whole tool: Proton VPN port detection, `.ini` edit, WebUI API over pinned HTTPS, certificate and scheduled-task management |
+| `Sync-QbitProtonPort.ps1` | The whole tool: Proton VPN port detection, `.ini` edit, WebUI API over pinned HTTPS, certificate, scheduled-task and desktop-shortcut management |
 | `.env.example` | Settings template, copied to `%LOCALAPPDATA%\qbit-proton-port\.env` |
 | `PSScriptAnalyzerSettings.psd1` | Rules of `harness/Test-Lint.ps1`, each exclusion with its reason |
 | `README.md` | User documentation. Its tables must match the script's parameters and error messages |

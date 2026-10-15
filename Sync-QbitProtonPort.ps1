@@ -21,6 +21,7 @@
     ./Sync-QbitProtonPort.ps1 -NewCertificate  # create/renew the WebUI HTTPS certificate
     ./Sync-QbitProtonPort.ps1 -ResetCredential # store a new API key
     ./Sync-QbitProtonPort.ps1 -RegisterTask    # re-sync every 5 minutes while logged on
+    ./Sync-QbitProtonPort.ps1 -NewShortcut     # desktop shortcut that syncs, then launches qBittorrent
     ./Sync-QbitProtonPort.ps1 -ShowConfig      # show where settings, key and logs are stored
 #>
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '',
@@ -35,6 +36,7 @@ param(
     [Parameter(ParameterSetName = 'ResetCredential', Mandatory)] [switch] $ResetCredential,
     [Parameter(ParameterSetName = 'RegisterTask', Mandatory)] [switch] $RegisterTask,
     [Parameter(ParameterSetName = 'UnregisterTask', Mandatory)] [switch] $UnregisterTask,
+    [Parameter(ParameterSetName = 'NewShortcut', Mandatory)] [switch] $NewShortcut,
     [Parameter(ParameterSetName = 'ShowConfig', Mandatory)] [switch] $ShowConfig
 )
 
@@ -52,6 +54,9 @@ $QbitIni     = Join-Path $env:APPDATA 'qBittorrent\qBittorrent.ini'
 $SslDir      = Join-Path $env:APPDATA 'qBittorrent\ssl'
 $ProtonLogs  = Join-Path $env:LOCALAPPDATA 'Proton\Proton VPN\Logs'
 $TaskName    = 'Sync qBittorrent port with Proton VPN'
+# App execution alias of the Microsoft Store PowerShell, stable across its updates.
+$PwshAlias   = Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps\pwsh.exe'
+$DesktopDir  = [Environment]::GetFolderPath('Desktop')
 $MaxPortAge  = [TimeSpan]::FromSeconds(90)   # Proton logs the port every ~10 s
 $CertWarnAge = [TimeSpan]::FromDays(30)
 
@@ -414,10 +419,36 @@ and click Apply. The change is live; this script then talks HTTPS only.
 "@
 }
 
-# --- Scheduled task --------------------------------------------------------------
+# --- Scheduled task and shortcut ---------------------------------------------------
+
+# Path of the running pwsh.exe that stays valid across PowerShell updates.
+function Get-PwshPath {
+    $pwsh = (Get-Process -Id $PID).Path
+    # The Store version runs from a versioned folder, replaced at each update: use its alias instead.
+    if ($pwsh -notlike '*\WindowsApps\*') { return $pwsh }
+    if (-not (Test-Path $PwshAlias)) {
+        throw "Cannot find a stable path to pwsh.exe: turn on its App execution alias in Windows Settings (Apps > Advanced app settings)."
+    }
+    return $PwshAlias
+}
+
+function New-DesktopShortcut {
+    $pwsh = Get-PwshPath
+    $link = (New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $DesktopDir 'qBittorrent (Proton VPN).lnk'))
+    $link.TargetPath = $pwsh
+    $link.Arguments = "-NoProfile -File `"$(Join-Path $Root 'Sync-QbitProtonPort.ps1')`" -PauseOnError"
+    $link.WorkingDirectory = $Root
+    # qBittorrent's icon when its path is already set; Read-EnvFile would create .env and fail.
+    if (Test-Path $EnvFile) {
+        $qbit = (Read-EnvFile)['QBIT_PATH']
+        if ($qbit -and (Test-Path $qbit)) { $link.IconLocation = "$qbit,0" }
+    }
+    $link.Save()
+    Write-Log INFO "Shortcut $($link.FullName) created, running $pwsh."
+}
 
 function Register-SyncTask {
-    $pwsh = (Get-Process -Id $PID).Path
+    $pwsh = Get-PwshPath
     $script = Join-Path $Root 'Sync-QbitProtonPort.ps1'
     # No -ExecutionPolicy Bypass: the task honours the machine policy (RemoteSigned by default).
     $arguments = "--headless `"$pwsh`" -NoProfile -File `"$script`" -SyncOnly"
@@ -428,7 +459,7 @@ function Register-SyncTask {
         -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 2)
     Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $principal `
         -Settings $settings -Description 'Keeps qBittorrent listening port equal to the Proton VPN forwarded port.' -Force | Out-Null
-    Write-Log INFO "Scheduled task '$TaskName' registered (every 5 min while logged on)."
+    Write-Log INFO "Scheduled task '$TaskName' registered (every 5 min while logged on), running $pwsh."
 }
 
 # --- Main --------------------------------------------------------------------------
@@ -452,6 +483,7 @@ try {
         'NewCertificate'  { New-WebUiCertificate; exit 0 }
         'ResetCredential' { Save-ApiKey; exit 0 }
         'RegisterTask'    { Register-SyncTask; exit 0 }
+        'NewShortcut'     { New-DesktopShortcut; exit 0 }
         'UnregisterTask'  {
             Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
             Write-Log INFO "Scheduled task '$TaskName' removed."

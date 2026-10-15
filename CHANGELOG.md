@@ -4,6 +4,18 @@ The changes of each release, sorted by category: 💥 upgrade steps, 🚀 new fe
 
 ## [Unreleased]
 
+### 🚀 Added
+
+- `-NewShortcut` creates the desktop shortcut that syncs the port, then starts qBittorrent, with qBittorrent's icon.
+
+### 🐛 Fixed
+
+- With PowerShell from the Microsoft Store, the scheduled task ran `pwsh.exe` from a versioned folder and stopped working at the next PowerShell update. Run `-RegisterTask` again to fix an existing task.
+
+### 🧹 Maintenance
+
+- The changelog cases of the harness pass whatever `[Unreleased]` holds.
+
 ## [1.0.3] - 2026-10-13
 
 ### 📝 Documentation

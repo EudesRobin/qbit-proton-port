@@ -198,3 +198,59 @@ Describe 'Get-Setting' {
         { Get-Setting -Settings @{} -Name 'B' } | Should -Throw 'Setting B is missing or empty*'
     }
 }
+
+Describe 'Get-PwshPath' {
+    BeforeAll {
+        $PwshAlias = Join-Path $TestDrive 'WindowsApps\pwsh.exe'
+        $StorePwsh = 'C:\Program Files\WindowsApps\Microsoft.PowerShell_7.6_x64__8wekyb3d8bbwe\pwsh.exe'
+    }
+    BeforeEach { Remove-Item (Split-Path $PwshAlias) -Recurse -ErrorAction Ignore }
+
+    It 'keeps the path of an installer version' {
+        Mock Get-Process { [pscustomobject]@{ Path = 'C:\Program Files\PowerShell\7\pwsh.exe' } } -ParameterFilter { $Id -eq $PID }
+        Get-PwshPath | Should -Be 'C:\Program Files\PowerShell\7\pwsh.exe'
+    }
+
+    It 'replaces the versioned folder of the Store version with its alias' {
+        Mock Get-Process { [pscustomobject]@{ Path = $StorePwsh } } -ParameterFilter { $Id -eq $PID }
+        New-Item -ItemType File -Path $PwshAlias -Force | Out-Null
+        Get-PwshPath | Should -Be $PwshAlias
+    }
+
+    It 'fails for the Store version without its alias' {
+        Mock Get-Process { [pscustomobject]@{ Path = $StorePwsh } } -ParameterFilter { $Id -eq $PID }
+        { Get-PwshPath } | Should -Throw 'Cannot find a stable path to pwsh.exe*'
+    }
+}
+
+Describe 'New-DesktopShortcut' {
+    BeforeAll {
+        $DesktopDir = Join-Path $TestDrive 'desktop'
+        $pwsh = Join-Path $TestDrive 'PowerShell\pwsh.exe'
+        $qbit = Join-Path $TestDrive 'qBittorrent\qbittorrent.exe'
+        New-Item -ItemType File -Path $pwsh, $qbit -Force | Out-Null
+        New-Item -ItemType Directory -Path $DesktopDir -Force | Out-Null
+    }
+    BeforeEach {
+        Mock Write-Log {}
+        Mock Get-PwshPath { $pwsh }
+        Remove-Item (Join-Path $DesktopDir '*') -ErrorAction Ignore
+    }
+
+    It 'runs the script with the stable pwsh path and the qBittorrent icon' {
+        Set-Content $EnvFile "QBIT_PATH=$qbit"
+        New-DesktopShortcut
+        $link = (New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $DesktopDir 'qBittorrent (Proton VPN).lnk'))
+        $link.TargetPath | Should -Be $pwsh
+        $link.Arguments | Should -Be "-NoProfile -File ""$(Join-Path $Root 'Sync-QbitProtonPort.ps1')"" -PauseOnError"
+        $link.WorkingDirectory | Should -Be $Root
+        $link.IconLocation | Should -Be "$qbit,0"
+    }
+
+    It 'creates the shortcut without an icon before the settings file exists' {
+        Remove-Item $EnvFile -ErrorAction Ignore
+        New-DesktopShortcut
+        Test-Path (Join-Path $DesktopDir 'qBittorrent (Proton VPN).lnk') | Should -BeTrue
+        Test-Path $EnvFile | Should -BeFalse
+    }
+}

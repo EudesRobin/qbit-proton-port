@@ -4,6 +4,8 @@ The changes of each release, sorted by category: 💥 upgrade steps, 🚀 new fe
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-15
+
 ### 🚀 Added
 
 - `-NewShortcut` creates the desktop shortcut that syncs the port, then starts qBittorrent, with qBittorrent's icon.
@@ -62,7 +64,8 @@ The changes of each release, sorted by category: 💥 upgrade steps, 🚀 new fe
 - Background scheduled task every 5 minutes, under the user's account and without admin rights.
 - Commands `-SyncOnly`, `-PauseOnError`, `-RegisterTask`, `-UnregisterTask`, `-ShowConfig`, `-ResetCredential` and `-NewCertificate`.
 
-[Unreleased]: https://github.com/EudesRobin/qbit-proton-port/compare/1.0.3...HEAD
+[Unreleased]: https://github.com/EudesRobin/qbit-proton-port/compare/1.1.0...HEAD
+[1.1.0]: https://github.com/EudesRobin/qbit-proton-port/compare/1.0.3...1.1.0
 [1.0.3]: https://github.com/EudesRobin/qbit-proton-port/compare/1.0.2...1.0.3
 [1.0.2]: https://github.com/EudesRobin/qbit-proton-port/compare/1.0.1...1.0.2
 [1.0.1]: https://github.com/EudesRobin/qbit-proton-port/compare/1.0.0...1.0.1

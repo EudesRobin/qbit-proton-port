@@ -16,11 +16,11 @@ It also binds qBittorrent to the VPN network interface, so torrent traffic stops
 ## Requirements
 
 - Windows 11
-- [PowerShell 7.3+](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-windows) (`pwsh`). Windows PowerShell 5.1 is not enough.
+- [PowerShell 7.3+](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-windows) (`pwsh`), from the installer or the Microsoft Store. Windows PowerShell 5.1 is not enough.
 - Proton VPN for Windows, on a plan that includes port forwarding
 - qBittorrent 5.2 or later (for API keys)
 
-Nothing else needs to be installed: the script only uses tools that ship with Windows (`icacls`, `conhost.exe`, and the `NetAdapter`, `ScheduledTasks` and `PKI` modules). Git is optional: you can download a ZIP instead.
+Nothing else needs to be installed: the script only uses tools that ship with Windows (`icacls`, `conhost.exe`, `WScript.Shell`, and the `NetAdapter`, `ScheduledTasks` and `PKI` modules). Git is optional: you can download a ZIP instead.
 
 Tested on Windows 11 Pro 25H2 (build 26200) with PowerShell 7.6.6, Proton VPN 5.1.8 and qBittorrent 5.2.3.
 
@@ -110,15 +110,17 @@ INFO  qBittorrent updated: port 51413 on 'ProtonVPN'.
 
 ### 7. Optional: make it automatic
 
-- **Desktop shortcut** that syncs the port, then starts qBittorrent. Right-click the desktop, choose **New › Shortcut**, and enter this location, replacing `<repo>` with the folder from step 1:
+- **Desktop shortcut** that syncs the port, then starts qBittorrent, with qBittorrent's icon:
+  ```powershell
+  .\Sync-QbitProtonPort.ps1 -NewShortcut
   ```
-  pwsh.exe -NoProfile -File "<repo>\Sync-QbitProtonPort.ps1" -PauseOnError
-  ```
-  The window closes by itself unless something went wrong; then it stays open until you press Enter. To give the shortcut qBittorrent's icon, open its **Properties › Change Icon** and browse to `qbittorrent.exe`.
+  It creates `qBittorrent (Proton VPN)` on your desktop, replacing a shortcut of that name. Its window closes by itself unless something went wrong; then it stays open until you press Enter.
 - **Background re-sync** every 5 minutes while you are logged on, for when Proton VPN reconnects and changes the port:
   ```powershell
   .\Sync-QbitProtonPort.ps1 -RegisterTask     # remove with -UnregisterTask
   ```
+
+Both run the script with the PowerShell you run the command from, through a path that survives its updates: its install folder, or for the Microsoft Store version, its `pwsh.exe` alias in `%LOCALAPPDATA%\Microsoft\WindowsApps`. After installing PowerShell another way, run `-NewShortcut` and `-RegisterTask` again from the new one.
 
 ## Usage
 
@@ -128,6 +130,7 @@ INFO  qBittorrent updated: port 51413 on 'ProtonVPN'.
 | `.\Sync-QbitProtonPort.ps1 -SyncOnly` | Sync only if qBittorrent is already open; if it's closed, do nothing (used by the task) |
 | `.\Sync-QbitProtonPort.ps1 -PauseOnError` | Same as the first line, but wait for Enter after an error so the window stays open (for shortcuts) |
 | `.\Sync-QbitProtonPort.ps1 -RegisterTask` / `-UnregisterTask` | Add or remove the 5-minute background task |
+| `.\Sync-QbitProtonPort.ps1 -NewShortcut` | Create or update the desktop shortcut |
 | `.\Sync-QbitProtonPort.ps1 -ShowConfig` | Show where the settings, API key, log and certificate are stored, and whether the task is registered |
 | `.\Sync-QbitProtonPort.ps1 -ResetCredential` | Store a new API key (after regenerating it in qBittorrent) |
 | `.\Sync-QbitProtonPort.ps1 -NewCertificate` | Renew the certificate (you get a warning 30 days before it expires), then redo step 5 in qBittorrent |
@@ -168,6 +171,7 @@ Errors (exit code 1, qBittorrent is not started):
 | `qBittorrent did not apply the settings` | qBittorrent refused the change: check its log, or set the port by hand |
 | `qBittorrent not found` | Fix `QBIT_PATH` in `.env` |
 | `qBittorrent settings not found` | Start qBittorrent once by hand so it creates its settings file |
+| `Cannot find a stable path to pwsh.exe` | `-NewShortcut` or `-RegisterTask` with the Microsoft Store PowerShell: in **Settings › Apps › Advanced app settings › App execution aliases**, turn on PowerShell, then run the command again |
 | `Cannot restrict permissions` | `-NewCertificate` couldn't secure the key folder; nothing was written. Check your rights on `%APPDATA%\qBittorrent` |
 
 Warnings (the run continues):

@@ -53,6 +53,19 @@ function Edit-Text([string] $Rel, [string] $Before, [string] $After) {
         Set-Content -Path $path -Value ($text.Substring(0, $i) + $After + $text.Substring($i + $Before.Length)) -NoNewline -Encoding utf8
     }.GetNewClosure()
 }
+# Adds a release to CHANGELOG.md, with its link reference, before the latest one: whatever [Unreleased] holds
+# stays in [Unreleased].
+function Add-Release([string] $Version, [string] $Date, [string] $Body) {
+    {
+        param($d)
+        $path = Join-Path $d 'CHANGELOG.md'
+        $text = Get-Content $path -Raw -Encoding utf8
+        $i = [regex]::Match($text, '(?m)^## \[\d').Index
+        $text = $text.Substring(0, $i) + "## [$Version] - $Date`n`n$Body`n`n" + $text.Substring($i)
+        Set-Content -Path $path -Value $text -NoNewline -Encoding utf8
+        Add-Content -Path $path -Value "[$Version]: https://example.com" -Encoding utf8
+    }.GetNewClosure()
+}
 # Makes the copy a git repository with everything staged, then applies $Then and stages it too (-f: ignored files).
 function Stage([scriptblock] $Then) {
     {
@@ -144,12 +157,12 @@ $Cases = @(
     Case 'consistency: changelog heading without date' $C copy (Edit-Text 'CHANGELOG.md' '## [1.0.0] - 2026-09-27' '## [1.0.0]') 1 "'## [1.0.0]' is not"
     Case 'consistency: changelog unknown subsection' $C copy (Edit-Text 'CHANGELOG.md' '### 🚀 Added' '### Added') 1 "'### Added' is not one of"
     Case 'consistency: changelog link reference missing' $C copy (Edit-Text 'CHANGELOG.md' '[1.0.0]: https' '[1.0]: https') 1 'no link reference for [1.0.0]'
-    Case 'consistency: changelog versions not decreasing' $C copy (Steps (Edit-Text 'CHANGELOG.md' '## [Unreleased]' "## [Unreleased]`n`n## [0.0.1] - 2099-01-01`n`n### 🐛 Fixed`n`n- x"), (Add-Text 'CHANGELOG.md' '[0.0.1]: https://example.com')) 1 'versions must be in decreasing order ('
-    Case 'consistency: changelog dates increasing' $C copy (Steps (Edit-Text 'CHANGELOG.md' '## [Unreleased]' "## [Unreleased]`n`n## [99.0.0] - 2000-01-01`n`n### 💥 Upgrade`n`n- x"), (Add-Text 'CHANGELOG.md' '[99.0.0]: https://example.com')) 1 'dates must not increase'
-    Case 'consistency: changelog major without Upgrade' $C copy (Steps (Edit-Text 'CHANGELOG.md' '## [Unreleased]' "## [Unreleased]`n`n## [99.0.0] - 2099-01-01`n`n### 🔥 Removed`n`n- x"), (Add-Text 'CHANGELOG.md' '[99.0.0]: https://example.com')) 1 '99.0.0 raises MAJOR and has no ### 💥 Upgrade'
-    Case 'consistency: changelog major with Upgrade' $C copy (Steps (Edit-Text 'CHANGELOG.md' '## [Unreleased]' "## [Unreleased]`n`n## [99.0.0] - 2099-01-01`n`n### 💥 Upgrade`n`n- x`n`n### 🔥 Removed`n`n- x"), (Add-Text 'CHANGELOG.md' '[99.0.0]: https://example.com')) 0 'PASSED'
-    Case 'consistency: changelog subsections out of order' $C copy (Edit-Text 'CHANGELOG.md' '### 🚀 Added' "### 🐛 Fixed`n`n- x`n`n### 🚀 Added") 1 "'### 🚀 Added' must come before '### 🐛 Fixed'"
-    Case 'consistency: changelog subsection twice' $C copy (Edit-Text 'CHANGELOG.md' '### 🚀 Added' "### 🚀 Added`n`n- x`n`n### 🚀 Added") 1 "'### 🚀 Added' must come before '### 🚀 Added'"
+    Case 'consistency: changelog versions not decreasing' $C copy (Add-Release '0.0.1' '2099-01-01' "### 🐛 Fixed`n`n- x") 1 'versions must be in decreasing order ('
+    Case 'consistency: changelog dates increasing' $C copy (Add-Release '99.0.0' '2000-01-01' "### 💥 Upgrade`n`n- x") 1 'dates must not increase'
+    Case 'consistency: changelog major without Upgrade' $C copy (Add-Release '99.0.0' '2099-01-01' "### 🔥 Removed`n`n- x") 1 '99.0.0 raises MAJOR and has no ### 💥 Upgrade'
+    Case 'consistency: changelog major with Upgrade' $C copy (Add-Release '99.0.0' '2099-01-01' "### 💥 Upgrade`n`n- x`n`n### 🔥 Removed`n`n- x") 0 'PASSED'
+    Case 'consistency: changelog subsections out of order' $C copy (Add-Release '99.0.0' '2099-01-01' "### 💥 Upgrade`n`n- x`n`n### 🐛 Fixed`n`n- x`n`n### 🚀 Added`n`n- x") 1 "'### 🚀 Added' must come before '### 🐛 Fixed'"
+    Case 'consistency: changelog subsection twice' $C copy (Add-Release '99.0.0' '2099-01-01' "### 💥 Upgrade`n`n- x`n`n### 🚀 Added`n`n- x`n`n### 🚀 Added`n`n- x") 1 "'### 🚀 Added' must come before '### 🚀 Added'"
 
     # --- Test-Workflows.ps1 (zizmor)
     Case 'workflows: real repository' $W real $null 0 'PASSED' -Requires $HasZizmor

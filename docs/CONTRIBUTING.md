@@ -42,6 +42,7 @@ The [commit-msg hook](../.githooks/commit-msg) checks all of this except the lan
 
 - `main` is protected: every change goes through a branch and a pull request, merged once the `validate` check passes on a branch up to date with `main`. A branch behind `main` is updated first (*Update branch* on the pull request), which runs CI again on the result.
 - Dependabot's pull requests are merged with a merge commit, like the others: its commits keep their own messages and release notes, which the commit checks skip.
+- The description follows the [pull request template](../.github/pull_request_template.md): every section is kept, and a box is ticked only when its point was actually verified. Issues are opened through the forms of [`.github/ISSUE_TEMPLATE/`](../.github/ISSUE_TEMPLATE/config.yml), whose warning about secrets matches the [security rules](../AGENTS.md#security-rules--non-negotiable).
 
 No hook checks a pull request description, and a squash message written on GitHub is only checked once on `main`, by CI: apply the commit rules by hand.
 

@@ -4,6 +4,10 @@ The changes of each release, sorted by category: 💥 upgrade steps, 🚀 new fe
 
 ## [Unreleased]
 
+### 📝 Documentation
+
+- Issue forms for bugs and feature requests, and a pull request template with the Definition of Done as a checklist.
+
 ## [1.1.0] - 2026-10-15
 
 ### 🚀 Added

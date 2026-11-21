@@ -1,0 +1,55 @@
+name: Bug
+description: Report a behaviour of the script that differs from what the README describes, or an inaccurate passage of the documentation.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Never paste the API key, the content of `secret.xml` or `.env`, or a certificate. In what you paste, replace your user name in paths with `<user>` and any public IP address with `<ip>`.
+  - type: dropdown
+    id: part
+    attributes:
+      label: Affected part
+      options:
+        - Port sync or qBittorrent launch
+        - Scheduled task (-RegisterTask)
+        - Desktop shortcut (-NewShortcut)
+        - Certificate or API key (-NewCertificate, -ResetCredential)
+        - Settings (.env, -ShowConfig)
+        - Documentation
+    validations:
+      required: true
+  - type: input
+    id: command
+    attributes:
+      label: Command run
+      placeholder: ".\\Sync-QbitProtonPort.ps1 -SyncOnly"
+  - type: input
+    id: version
+    attributes:
+      label: qbit-proton-port version
+      description: Release tag of the downloaded version, or commit of your clone (`git rev-parse --short HEAD`).
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Windows version and build, PowerShell version (`$PSVersionTable.PSVersion`) and where it was installed from (installer or Microsoft Store), Proton VPN version, qBittorrent version.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: For the documentation, what the passage should say.
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behaviour
+      description: Console output and exit code, and the matching lines of `sync.log` (its path is given by `-ShowConfig`), masked as above. For the documentation, the inaccurate passage.
+      render: text
+    validations:
+      required: true

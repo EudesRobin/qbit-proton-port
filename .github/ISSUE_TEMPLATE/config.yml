@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Troubleshooting
+    url: https://github.com/EudesRobin/qbit-proton-port/blob/main/README.md#troubleshooting
+    about: The fix for each error and warning message of the script.
+  - name: Contributing guide
+    url: https://github.com/EudesRobin/qbit-proton-port/blob/main/docs/CONTRIBUTING.md
+    about: Commits, pull requests, automated checks and releases.

@@ -1,0 +1,32 @@
+name: Feature request
+description: Propose a new parameter, setting or behaviour of the script.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: Need
+      description: The situation the script doesn't handle today, and how you work around it.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behaviour
+      description: The parameter, setting or change of behaviour you have in mind.
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact on an existing setup
+      options:
+        - None, an existing setup keeps working unchanged
+        - A parameter or setting is renamed or removed
+        - The scheduled task or the desktop shortcut must be created again
+        - Unsure
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: A qBittorrent or Proton VPN setting, another tool, a manual step…

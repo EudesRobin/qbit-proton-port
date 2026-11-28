@@ -35,22 +35,25 @@ A missing tool makes its check exit 2 ("could not run"): the pre-commit hook let
 The [commit-msg hook](../.githooks/commit-msg) checks all of this except the language and the email. CI checks the same rules on the commits of each pull request and on the commits pushed to `main`, merges and Dependabot's commits excepted. To check a branch before pushing it:
 
 ```powershell
-.\harness\Invoke-Harness.ps1 -CommitRange origin/main..HEAD
+.\harness\Invoke-Harness.ps1 -CommitRange origin/develop..HEAD
 ```
 
 ## Pull requests
 
-- `main` is protected: every change goes through a branch and a pull request, merged once the `validate` check passes on a branch up to date with `main`. A branch behind `main` is updated first (*Update branch* on the pull request), which runs CI again on the result.
+- Two branches are protected, and neither accepts a direct push. `develop` is the default branch and the integration branch: every working pull request targets it, Dependabot's and urgent fixes included. `main` is the publication branch: it only moves through the **publication pull request** from `develop` to `main`, merged with a merge commit when a version is released (see [Release steps](#release-steps)); `develop` is kept.
+- The `validate` check is required on both branches, and the `source` check also on `main`, which thus refuses a pull request from any branch other than `develop` of this repository. A pull request to `develop` is merged on a branch up to date with `develop`: a branch behind it is updated first (*Update branch* on the pull request), which runs CI again on the result. `main` doesn't require this: its merge commit never goes back to `develop`, so requiring it would block the next publication pull request.
 - Dependabot's pull requests are merged with a merge commit, like the others: its commits keep their own messages and release notes, which the commit checks skip.
 - The description follows the [pull request template](../.github/pull_request_template.md): every section is kept, and a box is ticked only when its point was actually verified. Issues are opened through the forms of [`.github/ISSUE_TEMPLATE/`](../.github/ISSUE_TEMPLATE/config.yml), whose warning about secrets matches the [security rules](../AGENTS.md#security-rules--non-negotiable).
 
-No hook checks a pull request description, and a squash message written on GitHub is only checked once on `main`, by CI: apply the commit rules by hand.
+No hook checks a pull request description, and a squash message written on GitHub is only checked by CI on the next publication pull request: apply the commit rules by hand.
 
 ## GitHub Actions
 
 Actions are pinned to a commit SHA, with the version in a comment (`uses: owner/action@<sha>  # vX.Y.Z`): a tag can be moved to other code. The repository's Actions settings enforce it (*Require actions to be pinned to a full-length commit SHA*). [Dependabot](../.github/dependabot.yml) updates the SHA and the comment together.
 
-The protection of `main` requires one check, the `validate` job of the [CI workflow](../.github/workflows/validate.yml). Every check runs in that job, through `Invoke-Harness.ps1`, so a new check is required as soon as it is added to the harness. Don't rename the job. A separate job is not required by the protection: add one only behind an aggregating job named `validate`, which `needs` it and fails unless every job it needs succeeded.
+The protection of `develop` and `main` requires the `validate` job of the [CI workflow](../.github/workflows/validate.yml). Every check of the code runs in that job, through `Invoke-Harness.ps1`, so a new check is required as soon as it is added to the harness. The protection of `main` also requires the `source` job, which runs on a pull request to `main` only and checks that it comes from `develop` of this repository. Don't rename either job. Any other separate job is not required by the protection: add one only behind an aggregating job named `validate`, which `needs` it and fails unless every job it needs succeeded.
+
+CI runs on every pull request, on every push to `main` and on demand. A push to `develop` doesn't run it: a pull request to `develop` is up to date before its merge, and its run already checked the merged code.
 
 A value from the event (branch name, title, SHA) reaches a `run:` script through `env:`, never as `${{ }}` inside the script: expanded there, it would be code.
 
@@ -76,7 +79,7 @@ Some rules are written in several places on purpose, each copy for its own reade
 
 ## Releases
 
-A release is an annotated git tag on a commit of `main`, published as a GitHub Release whose notes are the version's section of [CHANGELOG.md](../CHANGELOG.md). The tag defines the version: besides it, only the changelog heading written in the release pull request names it.
+A release is an annotated git tag on a commit of the publication branch, `main`, published as a GitHub Release whose notes are the version's section of [CHANGELOG.md](../CHANGELOG.md). The tag defines the version: besides it, only the changelog heading written in the release pull request names it.
 
 The tag follows semantic versioning, `MAJOR.MINOR.PATCH`, without a prefix: `1.0.0`, never `v1.0.0`. Choose the number to increment from all the changes since the previous release, as seen by a user who already runs the script:
 
@@ -90,7 +93,7 @@ Incrementing a number resets the ones after it: `1.4.2` becomes `1.5.0` or `2.0.
 
 ### Changelog
 
-[CHANGELOG.md](../CHANGELOG.md) follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), with an emoji per category so that the content of a release shows at a glance. Every pull request adds its entries under `## [Unreleased]`, except Dependabot's and the release pull request, in these subsections, each once and in this order:
+[CHANGELOG.md](../CHANGELOG.md) follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), with an emoji per category so that the content of a release shows at a glance. Every pull request adds its entries under `## [Unreleased]`, except Dependabot's, the release pull request and the publication pull request, in these subsections, each once and in this order:
 
 | Subsection | Content | Usual commit prefix |
 |---|---|---|
@@ -108,9 +111,10 @@ An entry describes the result for its reader, in one line, not the commits. `Tes
 
 ### Release steps
 
-1. **Release pull request**, titled `chore: version <version>`: in `CHANGELOG.md`, rename `## [Unreleased]` to `## [<version>] - <YYYY-MM-DD>`, add an empty `## [Unreleased]` above it, and update the link references at the end of the file (`[Unreleased]` compares `<version>...HEAD`, `[<version>]` compares the previous version with `<version>`).
-2. **Merge it**, then check that the latest run of the `CI` workflow on `main` passed, in the Actions tab of the GitHub repository.
-3. **Tag**, never on a working branch: the tag points to the state of `main` that users download.
+1. **Release pull request** to `develop`, titled `chore: version <version>`: in `CHANGELOG.md`, rename `## [Unreleased]` to `## [<version>] - <YYYY-MM-DD>`, add an empty `## [Unreleased]` above it, and update the link references at the end of the file (`[Unreleased]` compares `<version>...HEAD`, `[<version>]` compares the previous version with `<version>`).
+2. **Merge it.**
+3. **Publication pull request** from `develop` to `main`, with the same title and the version's changelog section as description. Merge it with a merge commit, keep `develop`, then check that the latest run of the `CI` workflow on `main` passed, in the Actions tab of the GitHub repository.
+4. **Tag on `main`**, never on `develop` or on a working branch: the tag points to the state of `main` that users download.
 
    ```powershell
    git switch main
@@ -119,7 +123,7 @@ An entry describes the result for its reader, in one line, not the commits. `Tes
    git push origin <version>
    ```
 
-4. **Check the release.** Pushing the tag runs the [Release workflow](../.github/workflows/release.yml). It checks that the tagged commit is on `main` and that CI passed on it, then publishes the GitHub Release with the version's changelog section as notes. Check its run, then the release page.
+5. **Check the release.** Pushing the tag runs the [Release workflow](../.github/workflows/release.yml). It checks that the tagged commit is on `main` and that CI passed on it, then publishes the GitHub Release with the version's changelog section as notes. Check its run, then the release page.
 
 A tag published without its GitHub Release, or whose run failed, is published again on demand: `gh workflow run release.yml -f tag=<version>`. That run reads `CHANGELOG.md` from `main`, and fails if started from another branch.
 

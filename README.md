@@ -30,6 +30,12 @@ Tested on Windows 11 Pro 25H2 (build 26200) with PowerShell 7.6.6, Proton VPN 5.
 
 Clone or download this repository into a **local folder that is not synced to the cloud**, for example `C:\Tools\qbit-proton-port`. The scheduled task runs the script every few minutes, so nobody else should be able to change it.
 
+Take the latest release: the `main` branch, or the source code ZIP of the latest release on the repository's Releases page. The default branch, `develop`, holds changes not released yet, and a plain clone checks it out:
+
+```powershell
+git clone --branch main https://github.com/EudesRobin/qbit-proton-port.git C:\Tools\qbit-proton-port
+```
+
 If you downloaded a ZIP, read the script, then unblock it so PowerShell will run it:
 
 ```powershell
@@ -139,7 +145,7 @@ Each run is logged to `%LOCALAPPDATA%\qbit-proton-port\logs\sync.log`. Past 1 MB
 
 ## Updating
 
-Every release is listed in [CHANGELOG.md](CHANGELOG.md) and on the repository's Releases page. Before updating to a new major version (`2.0.0`, `3.0.0`...), read its **💥 Upgrade** section: your setup needs a change. Then update your copy with `git pull`, or download the new ZIP and unblock it as in [step 1](#1-get-the-script).
+Every release is listed in [CHANGELOG.md](CHANGELOG.md) and on the repository's Releases page. Before updating to a new major version (`2.0.0`, `3.0.0`...), read its **💥 Upgrade** section: your setup needs a change. Then update your copy with `git pull` on the `main` branch (`git switch main` first if your clone is on `develop`), or download the new ZIP and unblock it as in [step 1](#1-get-the-script).
 
 ## Troubleshooting
 

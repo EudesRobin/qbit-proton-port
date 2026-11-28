@@ -36,7 +36,7 @@ No row fits the task, or two documents disagree: say so to the user before actin
 | `tests/` | Pester 6 tests of the script's functions, with Proton VPN mocked and every file in a temporary folder; run by `harness/Test-Unit.ps1` |
 | `.githooks/` | `pre-commit` (Invoke-Harness, then `Test-Secrets -Staged`) and `commit-msg` (Test-CommitMessage) |
 | `.gitattributes` | Keeps the git hooks in LF, as `sh` requires |
-| `.github/workflows/validate.yml` | CI workflow, job `validate` (the check required on `main`): runs `Invoke-Harness.ps1` on Windows for every push to `main`, every pull request and on demand |
+| `.github/workflows/validate.yml` | CI workflow, job `validate` (the check required on `develop` and `main`): runs `Invoke-Harness.ps1` on Windows for every push to `main`, every pull request and on demand; job `source` (also required on `main`): refuses a pull request to `main` that doesn't come from `develop` of this repository |
 | `.github/workflows/release.yml` | Publishes the GitHub Release of a pushed version tag, or on demand, with its changelog section as notes, once the tagged commit is on `main` and passed CI |
 | `.github/ISSUE_TEMPLATE/` | Issue forms (bug, feature request) and the issue chooser's links, with no blank issue |
 | `.github/pull_request_template.md` | Pull request description: context, changes, and the Definition of Done as a checklist |
@@ -71,7 +71,7 @@ After **each** edit, before building anything on top of it, proposing a commit, 
 1. Run `.\harness\Invoke-Harness.ps1`.
 2. `Sync-QbitProtonPort.ps1` changed: run it for real (**Run** above), and read the output and exit code.
 3. A behaviour, parameter, setting, message or file location changed: update the README in the same commit (usage, settings, troubleshooting, how it works, security), and this file or `docs/` when the layout, an external contract or a security rule changed. Reread the sections the diff touches, fix any statement that became wrong, and document any new behaviour that is missing: `Test-Consistency.ps1` covers only the mechanical part.
-4. Every change, whatever its kind, outside Dependabot's pull requests and the release pull request: add its entry under `[Unreleased]` in `CHANGELOG.md`, in the [category](docs/CONTRIBUTING.md#changelog) that fits.
+4. Every change, whatever its kind, outside Dependabot's pull requests, the release pull request and the publication pull request: add its entry under `[Unreleased]` in `CHANGELOG.md`, in the [category](docs/CONTRIBUTING.md#changelog) that fits.
 5. If a check fails or a statement became wrong, read the cause, fix it, and start again at 1.
 
 **At most 3 attempts.** If a check still fails after the third fix, stop editing. Reply with a concise report giving, for each attempt, the change made and the resulting error. Then ask the user what to do next. Never weaken or skip a check to make it pass.

@@ -1,6 +1,9 @@
-# Runs the harness on every push to main, every pull request and on demand (AGENTS.md, Harness).
+# Runs the harness on every push to main, every pull request and on demand (AGENTS.md, Harness), and, on a
+# pull request to main, checks that it comes from develop (docs/CONTRIBUTING.md, Pull requests).
 # Proton VPN and qBittorrent are absent here: only the offline checks run.
 # The harness groups its log per check, annotates problems on their file and line, and fills the job summary.
+# No run on a push to develop: a pull request to develop is up to date before its merge, and its run already
+# checked the merged code. The push to main stays: the Release workflow reads the CI run of the tagged commit.
 name: CI
 
 on:
@@ -18,7 +21,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # The job name is the check required by the protection of main: don't rename it.
+  # The job name is the check required by the protection of develop and main: don't rename it.
   validate:
     runs-on: windows-latest
     timeout-minutes: 15
@@ -45,3 +48,23 @@ jobs:
           # expanded in the script.
           COMMIT_RANGE: ${{ github.event_name == 'pull_request' && format('{0}..{1}', github.event.pull_request.base.sha, github.event.pull_request.head.sha) || github.event_name == 'push' && format('{0}..{1}', github.event.before, github.event.after) || '' }}
         run: .\harness\Invoke-Harness.ps1 -CommitRange $env:COMMIT_RANGE
+
+  # main only moves through the publication pull request from develop: any other head branch, or a develop
+  # branch from a fork, is refused. The job name is a check required by the protection of main: don't rename it.
+  source:
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Check that the pull request comes from develop of this repository
+        env:
+          # Chosen by the author of the pull request: passed through the environment, never expanded in the script.
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+        run: |
+          if ($env:HEAD_REF -cne 'develop' -or $env:HEAD_REPO -ne $env:GITHUB_REPOSITORY) {
+            throw 'A pull request to main must come from the develop branch of this repository.'
+          }

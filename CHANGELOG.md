@@ -7,6 +7,11 @@ The changes of each release, sorted by category: 💥 upgrade steps, 🚀 new fe
 ### 📝 Documentation
 
 - Issue forms for bugs and feature requests, and a pull request template with the Definition of Done as a checklist.
+- Setup and updating take the latest release from `main`, or its ZIP, rather than the unreleased `develop`.
+
+### 🧹 Maintenance
+
+- Development on `develop`, the default branch; `main` only moves when a version is released, through the publication pull request from `develop`. The `source` CI check refuses a pull request to `main` from any other branch.
 
 ## [1.1.0] - 2026-10-15
 
